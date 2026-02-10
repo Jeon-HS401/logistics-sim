@@ -3,6 +3,7 @@ import type { WorkspaceState, Slot, LayoutMap, SlotVersion } from './models/type
 import {
   loadWorkspace,
   saveWorkspace,
+  getInitialState,
   createSlot,
   updateSlot,
   addVersion,
@@ -23,7 +24,14 @@ export type AppMode = 'layout' | 'simulation'
  */
 function App() {
   const [mode, setMode] = useState<AppMode>('layout')
-  const [workspace, setWorkspace] = useState<WorkspaceState>(() => loadWorkspace())
+  const [workspace, setWorkspace] = useState<WorkspaceState>(() => {
+    const w = loadWorkspace()
+    if (w.slots.length === 0) {
+      const slot = createSlot('슬롯 1')
+      return { ...getInitialState(), slots: [slot], currentSlotId: slot.id }
+    }
+    return w
+  })
 
   const currentSlot: Slot | null =
     workspace.currentSlotId != null

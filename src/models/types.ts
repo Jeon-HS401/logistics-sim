@@ -3,13 +3,17 @@
  * Phase 1: 최소 필드만. 이후 단계에서 확장.
  */
 
-/** 장비 종류 (1차: 일부만 사용) */
+/**
+ * 장비 종류 (1차: 입고·출고·컨베이어·기계1)
+ * 향후 확장: 기계별 크기(그리드 칸 수), 입출력 포트 위치·개수 등 고정 예정.
+ */
 export type EquipmentKind =
+  | 'inbound'    // 입고
+  | 'outbound'   // 출고
   | 'conveyor'   // 컨베이어
-  | 'inbound'   // 입고구
-  | 'outbound'  // 출고구
-  | 'storage'   // 보관(창고)
-  | 'processor' // 가공/처리 장비
+  | 'machine1'   // 기계1 (추후 기계2 등 확장)
+  | 'storage'    // 보관 (과거 호환)
+  | 'processor'  // 가공 (과거 호환)
 
 /** 그리드 셀 한 칸의 위치 */
 export interface GridPosition {

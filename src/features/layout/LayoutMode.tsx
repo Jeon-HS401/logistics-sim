@@ -2,13 +2,36 @@ import { useState } from 'react'
 import type { LayoutMap, PlacedEquipment, GridPosition } from '../../models/types'
 import './LayoutMode.css'
 
+const ZOOM_MIN = 0.25
+const ZOOM_MAX = 2
+const ZOOM_STEP = 0.25
+const CELL_BASE = 32
+
+const EQUIPMENT_LABELS: Record<string, string> = {
+  inbound: '입고',
+  outbound: '출고',
+  conveyor: '컨베이어',
+  machine1: '기계1',
+  storage: '보관',
+  processor: '가공',
+}
+
 type Props = {
   layout: LayoutMap
   onLayoutChange: (layout: LayoutMap) => void
 }
 
+/** 1차: 입고, 출고, 컨베이어, 기계1. 추후 기계별 크기·입출력 포트 등 확장 예정. */
+const KINDS: { value: PlacedEquipment['kind']; label: string }[] = [
+  { value: 'inbound', label: '입고' },
+  { value: 'outbound', label: '출고' },
+  { value: 'conveyor', label: '컨베이어' },
+  { value: 'machine1', label: '기계1' },
+]
+
 export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const [selectedKind, setSelectedKind] = useState<PlacedEquipment['kind'] | null>(null)
+  const [zoom, setZoom] = useState(1)
 
   const handleCellClick = (pos: GridPosition) => {
     if (!selectedKind) return
@@ -29,63 +52,98 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
     })
   }
 
-  const kinds: { value: PlacedEquipment['kind']; label: string }[] = [
-    { value: 'inbound', label: '입고' },
-    { value: 'conveyor', label: '컨베이어' },
-    { value: 'storage', label: '보관' },
-    { value: 'outbound', label: '출고' },
-  ]
+  const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))
+  const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))
 
   return (
     <div className="layout-mode">
-      <section className="layout-toolbar">
-        <span className="layout-toolbar-label">장비 선택:</span>
-        <div className="layout-toolbar-buttons">
-          {kinds.map((k) => (
-            <button
-              key={k.value}
-              className={selectedKind === k.value ? 'active' : ''}
-              onClick={() => setSelectedKind(selectedKind === k.value ? null : k.value)}
+      <aside className="layout-panel-top" aria-label="기능 패널 (상단)">
+        {/* 추후 상단 기능 패널 */}
+      </aside>
+
+      <div className="layout-body">
+        <aside className="layout-panel-side" aria-label="기능 패널 (사이드)">
+          {/* 추후 사이드 기능 패널 */}
+        </aside>
+
+        <div className="layout-main">
+          <section className="layout-toolbar">
+            <span className="layout-toolbar-label">장비:</span>
+            <div className="layout-toolbar-buttons">
+              {KINDS.map((k) => (
+                <button
+                  key={k.value}
+                  type="button"
+                  className={selectedKind === k.value ? 'active' : ''}
+                  onClick={() => setSelectedKind(selectedKind === k.value ? null : k.value)}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
+            <div className="layout-zoom">
+              <button type="button" onClick={zoomOut} disabled={zoom <= ZOOM_MIN} aria-label="축소">
+                −
+              </button>
+              <span className="layout-zoom-value">{Math.round(zoom * 100)}%</span>
+              <button type="button" onClick={zoomIn} disabled={zoom >= ZOOM_MAX} aria-label="확대">
+                +
+              </button>
+            </div>
+            {selectedKind && (
+              <p className="layout-hint">칸을 클릭해 배치, 배치된 칸 클릭 시 제거.</p>
+            )}
+          </section>
+
+          <section className="layout-grid-area">
+            <div
+              className="layout-grid-zoom"
+              style={{ '--zoom': zoom } as React.CSSProperties}
             >
-              {k.label}
-            </button>
-          ))}
-        </div>
-        {selectedKind && (
-          <p className="layout-hint">그리드 칸을 클릭해 배치하세요. 배치된 장비를 클릭하면 제거됩니다.</p>
-        )}
-      </section>
-
-      <section className="layout-grid-wrap">
-        <div
-          className="layout-grid"
-          style={{
-            gridTemplateRows: `repeat(${map.rows}, 1fr)`,
-            gridTemplateColumns: `repeat(${map.cols}, 1fr)`,
-          }}
-        >
-          {Array.from({ length: map.rows * map.cols }, (_, i) => {
-            const row = Math.floor(i / map.cols)
-            const col = i % map.cols
-            const eq = map.equipment.find(
-              (e) => e.position.row === row && e.position.col === col
-            )
-            return (
               <div
-                key={i}
-                className={`layout-cell ${eq ? 'has-equipment' : ''}`}
-                onClick={() => (eq ? removeEquipment(eq.id) : handleCellClick({ row, col }))}
+                className="layout-grid"
+                style={{
+                  gridTemplateRows: `repeat(${map.rows}, ${CELL_BASE}px)`,
+                  gridTemplateColumns: `repeat(${map.cols}, ${CELL_BASE}px)`,
+                }}
               >
-                {eq && <span className="layout-cell-label">{eq.kind.slice(0, 2)}</span>}
+                {Array.from({ length: map.rows * map.cols }, (_, i) => {
+                  const row = Math.floor(i / map.cols)
+                  const col = i % map.cols
+                  const eq = map.equipment.find(
+                    (e) => e.position.row === row && e.position.col === col
+                  )
+                  return (
+                    <div
+                      key={i}
+                      role="button"
+                      tabIndex={0}
+                      className={`layout-cell ${eq ? 'has-equipment' : ''}`}
+                      onClick={() => (eq ? removeEquipment(eq.id) : handleCellClick({ row, col }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          eq ? removeEquipment(eq.id) : handleCellClick({ row, col })
+                        }
+                      }}
+                    >
+                      {eq && (
+                        <span className="layout-cell-label">
+                          {EQUIPMENT_LABELS[eq.kind] ?? eq.kind.slice(0, 2)}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-      </section>
+            </div>
+          </section>
 
-      <section className="layout-footer">
-        <small>배치된 장비: {map.equipment.length}개</small>
-      </section>
+          <section className="layout-footer">
+            <small>배치된 장비: {map.equipment.length}개</small>
+          </section>
+        </div>
+      </div>
     </div>
   )
 }
