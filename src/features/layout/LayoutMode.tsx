@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { LayoutMap, PlacedEquipment, GridPosition } from '../../models/types'
+import { buildPathFromInbound } from './pathUtils'
 import './LayoutMode.css'
+
+const TEST_STEP_MS = 400
 
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 2
@@ -41,6 +44,10 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const [selectedKind, setSelectedKind] = useState<PlacedEquipment['kind'] | null>(null)
   const [conveyorDirection, setConveyorDirection] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [testPath, setTestPath] = useState<GridPosition[] | null>(null)
+  const [testStepIndex, setTestStepIndex] = useState(0)
+  const [testRunning, setTestRunning] = useState(false)
+  const [testMessage, setTestMessage] = useState<string | null>(null)
 
   const rotationWhenPlacing = selectedKind === 'conveyor' ? conveyorDirection : 0
 
@@ -75,6 +82,32 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
 
   const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))
   const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))
+
+  const runTestFlow = () => {
+    setTestMessage(null)
+    const path = buildPathFromInbound(map)
+    if (!path) {
+      setTestMessage('입고가 없거나, 입고→컨베이어→출고 연결 경로가 없습니다.')
+      return
+    }
+    setTestPath(path)
+    setTestStepIndex(0)
+    setTestRunning(true)
+  }
+
+  useEffect(() => {
+    if (!testRunning || !testPath) return
+    const id = setInterval(() => {
+      setTestStepIndex((i) => {
+        if (i >= testPath.length - 1) {
+          setTestRunning(false)
+          return i
+        }
+        return i + 1
+      })
+    }, TEST_STEP_MS)
+    return () => clearInterval(id)
+  }, [testRunning, testPath])
 
   return (
     <div className="layout-mode">
@@ -127,6 +160,17 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                 ))}
               </div>
             )}
+            <div className="layout-test-wrap">
+              <button
+                type="button"
+                className="layout-test-btn"
+                onClick={runTestFlow}
+                disabled={testRunning}
+              >
+                {testRunning ? '흐름 시연 중…' : '물품 1개 흐름'}
+              </button>
+              {testMessage && <span className="layout-test-msg">{testMessage}</span>}
+            </div>
             {selectedKind && (
               <p className="layout-hint">
                 {selectedKind === 'conveyor'
@@ -154,12 +198,20 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                   const eq = map.equipment.find(
                     (e) => e.position.row === row && e.position.col === col
                   )
+                  const isTestCurrent =
+                    testPath &&
+                    testStepIndex < testPath.length &&
+                    testPath[testStepIndex].row === row &&
+                    testPath[testStepIndex].col === col
+                  const isTestPath =
+                    testPath &&
+                    testPath.some((p) => p.row === row && p.col === col)
                   return (
                     <div
                       key={i}
                       role="button"
                       tabIndex={0}
-                      className={`layout-cell ${eq ? 'has-equipment' : ''}`}
+                      className={`layout-cell ${eq ? 'has-equipment' : ''} ${isTestPath ? 'layout-cell--test-path' : ''} ${isTestCurrent ? 'layout-cell--test-current' : ''}`}
                       onClick={() =>
                         eq
                           ? eq.kind === 'conveyor'
@@ -185,6 +237,7 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                             : (EQUIPMENT_LABELS[eq.kind] ?? eq.kind.slice(0, 2))}
                         </span>
                       )}
+                      {isTestCurrent && <span className="layout-cell-test-dot" aria-hidden />}
                     </div>
                   )
                 })}
