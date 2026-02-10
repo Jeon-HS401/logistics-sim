@@ -1,0 +1,116 @@
+.layout-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.layout-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.layout-toolbar-label {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.layout-toolbar-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.layout-toolbar-buttons button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.layout-toolbar-buttons button:hover {
+  background: var(--color-border);
+}
+
+.layout-toolbar-buttons button.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.layout-hint {
+  width: 100%;
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.layout-grid-wrap {
+  flex: 1;
+  min-height: 200px;
+  overflow: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+
+.layout-grid {
+  display: grid;
+  gap: 2px;
+  min-width: min-content;
+  min-height: 100%;
+  aspect-ratio: 12 / 8;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.layout-cell {
+  min-width: 28px;
+  min-height: 28px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.layout-cell:hover {
+  border-color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.layout-cell.has-equipment {
+  background: rgba(63, 185, 80, 0.15);
+  border-color: var(--color-success);
+  color: var(--color-text);
+}
+
+.layout-cell-label {
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.layout-footer {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .layout-cell {
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 0.55rem;
+  }
+}

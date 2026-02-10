@@ -1,0 +1,69 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.app-header {
+  flex-shrink: 0;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  gap: 0.75rem;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.app-nav button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  min-height: 2.25rem;
+}
+
+.app-nav button:hover {
+  background: var(--color-border);
+}
+
+.app-nav button.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.app-main {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+@media (max-width: 480px) {
+  .app-title {
+    font-size: 0.95rem;
+  }
+  .app-nav button {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}

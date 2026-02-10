@@ -1,0 +1,34 @@
+.simulation-mode {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.simulation-header h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.simulation-desc {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.simulation-placeholder {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+}
+
+.simulation-placeholder ul {
+  margin: 0.75rem 0 0 1.25rem;
+  padding: 0;
+}
+
+.simulation-placeholder li {
+  margin: 0.25rem 0;
+}
