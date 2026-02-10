@@ -1,6 +1,6 @@
 /**
  * 배치된 경로 따라 물품 1개 흐름 테스트용 경로 계산
- * 입고 → (인접 컨베이어/출고) → 컨베이어 방향 따라 진행 → 출고
+ * 입고 → 컨베이어(입력/출력 방향) / 기계1(출력 방향) → … → 출고
  */
 
 import type { LayoutMap, PlacedEquipment, GridPosition } from '../../models/types'
@@ -9,8 +9,24 @@ const ROW_DELTA = [0, 1, 0, -1]   // 0°, 90°, 180°, 270°
 const COL_DELTA = [1, 0, -1, 0]
 
 function rotationToIndex(deg: number): number {
-  const i = Math.round(deg / 90) % 4
+  const i = Math.round((deg % 360) / 90) % 4
   return i < 0 ? i + 4 : i
+}
+
+/** (fromRow, fromCol) → (toRow, toCol) 이동 방향을 0/90/180/270으로 */
+function getMoveDirection(
+  fromRow: number,
+  fromCol: number,
+  toRow: number,
+  toCol: number
+): number {
+  const dr = toRow - fromRow
+  const dc = toCol - fromCol
+  if (dc === 1 && dr === 0) return 0
+  if (dr === 1 && dc === 0) return 90
+  if (dc === -1 && dr === 0) return 180
+  if (dr === -1 && dc === 0) return 270
+  return 0
 }
 
 export function getEquipmentAt(
@@ -37,7 +53,7 @@ export function getNextCell(
   }
 }
 
-/** 입고 한 곳에서 출고까지의 경로. 없으면 null, 순환 시 빈 배열 등으로 구분 가능 */
+/** 입고 한 곳에서 출고까지의 경로. 기계1·컨베이어 입력방향 반영. */
 export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
   const inbound = layout.equipment.find((e) => e.kind === 'inbound')
   if (!inbound) return null
@@ -48,7 +64,6 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
 
   visited.add(key(inbound.position.row, inbound.position.col))
 
-  // 입고 인접 4방 중 컨베이어 또는 출고 찾기
   const firstDeltas: [number, number][] = [[0, 1], [1, 0], [0, -1], [-1, 0]]
   let current: GridPosition | null = null
 
@@ -61,7 +76,7 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
       path.push({ row: nr, col: nc })
       return path
     }
-    if (eq?.kind === 'conveyor') {
+    if (eq?.kind === 'conveyor' || eq?.kind === 'machine1') {
       current = { row: nr, col: nc }
       path.push(current)
       visited.add(key(nr, nc))
@@ -69,33 +84,52 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
     }
   }
 
-  if (!current) return path.length > 1 ? path : null
+  if (!current) return null
 
-  // 컨베이어 방향 따라 출고까지 진행
+  let fromRow = inbound.position.row
+  let fromCol = inbound.position.col
+
   while (current) {
     const eq = getEquipmentAt(layout, current.row, current.col)
-    if (!eq || eq.kind !== 'conveyor') break
+    if (!eq) break
 
-    const next = getNextCell(current.row, current.col, eq.rotation)
-    if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) break
-    if (visited.has(key(next.row, next.col))) break // 순환
-
-    const nextEq = getEquipmentAt(layout, next.row, next.col)
-    if (nextEq?.kind === 'outbound') {
-      path.push(next)
-      return path
-    }
-    if (nextEq?.kind === 'conveyor') {
-      path.push(next)
-      visited.add(key(next.row, next.col))
-      current = next
-    } else {
-      break
-    }
+    if (eq.kind === 'conveyor') {
+      const fromDir = getMoveDirection(fromRow, fromCol, current.row, current.col)
+      const inputExpected = (fromDir + 180) % 360
+      if (eq.inputDirection != null && eq.inputDirection !== inputExpected) break
+      const next = getNextCell(current.row, current.col, eq.rotation)
+      fromRow = current.row
+      fromCol = current.col
+      if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) break
+      if (visited.has(key(next.row, next.col))) break
+      const nextEq = getEquipmentAt(layout, next.row, next.col)
+      if (nextEq?.kind === 'outbound') {
+        path.push(next)
+        return path
+      }
+      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+        path.push(next)
+        visited.add(key(next.row, next.col))
+        current = next
+      } else break
+    } else if (eq.kind === 'machine1') {
+      const next = getNextCell(current.row, current.col, eq.rotation)
+      fromRow = current.row
+      fromCol = current.col
+      if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) break
+      if (visited.has(key(next.row, next.col))) break
+      const nextEq = getEquipmentAt(layout, next.row, next.col)
+      if (nextEq?.kind === 'outbound') {
+        path.push(next)
+        return path
+      }
+      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+        path.push(next)
+        visited.add(key(next.row, next.col))
+        current = next
+      } else break
+    } else break
   }
 
-  const last = path[path.length - 1]
-  const lastEq = last && getEquipmentAt(layout, last.row, last.col)
-  if (lastEq?.kind === 'outbound' && path.length >= 2) return path
   return null
 }

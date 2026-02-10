@@ -28,10 +28,16 @@ export interface PlacedEquipment {
   position: GridPosition
   /**
    * 0, 90, 180, 270 (도).
-   * 컨베이어: 이동 방향(연결 방향). 0=→, 90=↓, 180=←, 270=↑. 시뮬레이션에서 연결로 해석.
+   * 컨베이어: 출력(내보내는) 방향. 입력은 inputDirection.
+   * 기계1: 가공 후 내보내는 방향. (추후 다양한 재료·가공 형태 확장)
    * 기타: 출구 방향 등.
    */
   rotation: number
+  /**
+   * 컨베이어: 받는 쪽(입력 방향). 0=→, 90=↓, 180=←, 270=↑.
+   * 없으면 모든 방향 허용(과거 호환). 입력≠출력이면 방향전환(코너).
+   */
+  inputDirection?: number
   /** 이동 속도 (칸/초) - conveyor 등 */
   speed?: number
   /** 처리 속도 (개/분) - processor, inbound, outbound 등 */

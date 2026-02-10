@@ -55,6 +55,11 @@
   font-size: 0.875rem;
 }
 
+.layout-toolbar-label--hint {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
 .layout-toolbar-buttons {
   display: flex;
   flex-wrap: wrap;
