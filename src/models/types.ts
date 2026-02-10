@@ -45,3 +45,40 @@ export interface SimulationConfig {
   inboundRatePerMinute: number
   /** 나중에: 전력 제한, 우선순위 등 */
 }
+
+// --- 작업 환경·슬롯·버전 관리 ---
+
+/** 슬롯 하나 = 한 가지 배치/시나리오를 작업하는 단위 (여러 사람 또는 여러 시나리오 구분) */
+export interface Slot {
+  id: string
+  /** 표시 이름 (사용자 지정) */
+  name: string
+  createdAt: string // ISO 8601
+  updatedAt: string
+  /** 현재 배치 데이터 */
+  layout: LayoutMap
+  /** 시뮬레이션 설정 (선택) */
+  simulationConfig?: SimulationConfig
+}
+
+/** 슬롯 내 버전 하나 (이전 상태로 복원용) */
+export interface SlotVersion {
+  id: string
+  slotId: string
+  savedAt: string // ISO 8601
+  /** 사용자 메모 (예: "초기 배치", "출고구 추가") */
+  label?: string
+  /** 그 시점의 스냅샷 */
+  layout: LayoutMap
+  simulationConfig?: SimulationConfig
+}
+
+/** 앱 전체 작업 환경 상태 (로컬 저장용) */
+export interface WorkspaceState {
+  /** 현재 선택된 슬롯 ID */
+  currentSlotId: string | null
+  /** 슬롯 목록 */
+  slots: Slot[]
+  /** 슬롯별 버전 히스토리 (slotId → 최근 N개). Phase 1 이후 구현 시 확장 */
+  versionsBySlotId?: Record<string, SlotVersion[]>
+}

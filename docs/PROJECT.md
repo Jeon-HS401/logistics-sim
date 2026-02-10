@@ -83,13 +83,15 @@ GitHub 메인 소개는 [README.md](../README.md)를 보세요.
 ```
 play_sim/
 ├── docs/
-│   └── PROJECT.md      # 본 문서 (작업·확인용)
+│   ├── PROJECT.md      # 본 문서 (작업·확인용)
+│   └── FEATURES.md     # 기능 정리 (작업 환경·저장·버전·슬롯)
 ├── src/
 │   ├── components/     # 공통 UI (버튼, 그리드, 모달)
 │   ├── features/
 │   │   ├── layout/     # 배치·테스트 모드
 │   │   └── simulation/ # 시뮬레이션 모드
-│   ├── models/         # 장비, 물품, 이벤트 타입 정의
+│   ├── models/         # 장비, 물품, 이벤트·슬롯·버전 타입 정의
+│   ├── workspace/      # 슬롯·저장·버전 (로컬 스토리지 골격)
 │   ├── simulation/     # 시뮬레이션 엔진(속도, 전력, 대기열)
 │   ├── App.tsx
 │   └── main.tsx
@@ -99,6 +101,8 @@ play_sim/
 ├── tsconfig.json
 └── README.md           # 프로젝트 소개 (GitHub 메인)
 ```
+
+작업 환경·저장·버전·슬롯 관리에 대한 상세 기능 정리는 **[docs/FEATURES.md](FEATURES.md)**를 참고하세요.
 
 ---
 

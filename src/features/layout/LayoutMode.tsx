@@ -2,33 +2,31 @@ import { useState } from 'react'
 import type { LayoutMap, PlacedEquipment, GridPosition } from '../../models/types'
 import './LayoutMode.css'
 
-const DEFAULT_MAP: LayoutMap = {
-  rows: 8,
-  cols: 12,
-  equipment: [],
+type Props = {
+  layout: LayoutMap
+  onLayoutChange: (layout: LayoutMap) => void
 }
 
-export function LayoutMode() {
-  const [map, setMap] = useState<LayoutMap>(DEFAULT_MAP)
+export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const [selectedKind, setSelectedKind] = useState<PlacedEquipment['kind'] | null>(null)
 
   const handleCellClick = (pos: GridPosition) => {
     if (!selectedKind) return
     const id = `eq-${Date.now()}-${pos.row}-${pos.col}`
-    setMap((prev) => ({
-      ...prev,
+    onLayoutChange({
+      ...map,
       equipment: [
-        ...prev.equipment,
+        ...map.equipment,
         { id, kind: selectedKind, position: pos, rotation: 0 },
       ],
-    }))
+    })
   }
 
   const removeEquipment = (id: string) => {
-    setMap((prev) => ({
-      ...prev,
-      equipment: prev.equipment.filter((e) => e.id !== id),
-    }))
+    onLayoutChange({
+      ...map,
+      equipment: map.equipment.filter((e) => e.id !== id),
+    })
   }
 
   const kinds: { value: PlacedEquipment['kind']; label: string }[] = [

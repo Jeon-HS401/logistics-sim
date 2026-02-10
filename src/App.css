@@ -1,3 +1,4 @@
+/* 전체 레이아웃: 헤더 → 작업영역 바 → 본문 */
 .app {
   display: flex;
   flex-direction: column;
