@@ -29,6 +29,26 @@ export const MACHINE1_TRANSFORM: Record<ItemType, ItemType | undefined> = {
 /** 기계1이 받을 수 있는 물품 */
 export const MACHINE1_ACCEPTS: ItemType[] = ['A', 'B', 'C']
 
+/** 기계1: 물품별 소요 시간(ms). 확장 시 기계별로 다르게 설정 가능 */
+export const MACHINE1_PROCESSING_MS: Record<ItemType, number> = {
+  A: 1000,
+  B: 1500,
+  C: 2000,
+  A1: 0,
+  B1: 0,
+  C1: 0,
+}
+
+/** 기계1: 물품별 변환 비율(입력 1개당 출력 개수). 확장 시 기계별로 다르게 설정 가능 */
+export const MACHINE1_CONVERSION_RATIO: Record<ItemType, number> = {
+  A: 1,
+  B: 1,
+  C: 1,
+  A1: 1,
+  B1: 1,
+  C1: 1,
+}
+
 /** 기계1 사양 (더미 시나리오) */
 export const MACHINE1_SPEC = {
   /** 그리드 상 크기 (가로×세로 칸) */
@@ -42,6 +62,10 @@ export const MACHINE1_SPEC = {
   accepts: MACHINE1_ACCEPTS,
   /** 변환 규칙 */
   transform: MACHINE1_TRANSFORM,
+  /** 물품별 소요 시간(ms) */
+  processingMs: MACHINE1_PROCESSING_MS,
+  /** 물품별 변환 비율 */
+  conversionRatio: MACHINE1_CONVERSION_RATIO,
   /** 방향전환 가능 */
   rotatable: true,
 } as const

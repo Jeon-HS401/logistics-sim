@@ -5,7 +5,16 @@ export {
   MACHINE1_TRANSFORM,
   MACHINE1_ACCEPTS,
   MACHINE1_SPEC,
+  MACHINE1_PROCESSING_MS,
+  MACHINE1_CONVERSION_RATIO,
   INBOUND_RULE,
   OUTBOUND_RULE,
   WAREHOUSE_RULE,
 } from './dummyScenario'
+
+export {
+  EQUIPMENT_SPECS,
+  type EquipmentTypeSpec,
+  type EquipmentPortSpec,
+  type Side,
+} from './equipmentSpecs'

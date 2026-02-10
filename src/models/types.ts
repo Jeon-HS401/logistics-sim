@@ -24,23 +24,38 @@ export interface GridPosition {
   col: number
 }
 
+/** 장비가 차지하는 칸 수 (없으면 1×1) */
+export interface EquipmentSize {
+  width: number
+  height: number
+}
+
 /** 배치된 장비 한 개 */
 export interface PlacedEquipment {
   id: string
   kind: EquipmentKind
+  /** 기준 위치(다칸일 때는 상단·좌측 등). */
   position: GridPosition
   /**
    * 0, 90, 180, 270 (도).
    * 컨베이어: 출력(내보내는) 방향. 입력은 inputDirection.
-   * 기계1: 가공 후 내보내는 방향. (추후 다양한 재료·가공 형태 확장)
+   * 기계1: 가공 후 내보내는 방향.
    * 기타: 출구 방향 등.
    */
   rotation: number
   /**
    * 컨베이어: 받는 쪽(입력 방향). 0=→, 90=↓, 180=←, 270=↑.
-   * 없으면 모든 방향 허용(과거 호환). 입력≠출력이면 방향전환(코너).
+   * 없으면 모든 방향 허용(과거 호환).
+   * 방향전환 = 이 셀에서 진입 방향과 이탈 방향이 다름(코너).
    */
   inputDirection?: number
+  /** 여러 칸 차지 시 (예: 기계1 2×2). 없으면 1×1. */
+  size?: EquipmentSize
+  /**
+   * 출고(outbound) 전용: 이 출고 포트에서 창고의 어떤 물품을 내보낼지.
+   * 출고 버튼에서 창고 물품 선택 → 이 필드에 저장.
+   */
+  outboundSelectedItem?: ItemType
   /** 이동 속도 (칸/초) - conveyor 등 */
   speed?: number
   /** 처리 속도 (개/분) - processor, inbound, outbound 등 */
@@ -54,6 +69,11 @@ export interface LayoutMap {
   rows: number
   cols: number
   equipment: PlacedEquipment[]
+  /**
+   * 창고 보유량. 입고→창고 적재, 출고는 선택 품목만 창고에서 가져감.
+   * 시뮬레이션 시 사용. 없으면 빈 객체 또는 0으로 해석.
+   */
+  warehouseInventory?: Partial<Record<ItemType, number>>
 }
 
 /** 시뮬레이션 설정 (Phase 2에서 확장) */

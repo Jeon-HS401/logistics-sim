@@ -1,9 +1,11 @@
 /**
  * 배치된 경로 따라 물품 1개 흐름 테스트용 경로 계산
  * 입고 → 컨베이어(입력/출력 방향) / 기계1(출력 방향) → … → 출고
+ * 다칸 장비(기계1 2×2) 점유·겹침 검사 지원.
  */
 
-import type { LayoutMap, PlacedEquipment, GridPosition } from '../../models/types'
+import type { LayoutMap, PlacedEquipment, GridPosition, EquipmentSize } from '../../models/types'
+import { EQUIPMENT_SPECS } from '../../data/equipmentSpecs'
 
 const ROW_DELTA = [0, 1, 0, -1]   // 0°, 90°, 180°, 270°
 const COL_DELTA = [1, 0, -1, 0]
@@ -11,6 +13,79 @@ const COL_DELTA = [1, 0, -1, 0]
 function rotationToIndex(deg: number): number {
   const i = Math.round((deg % 360) / 90) % 4
   return i < 0 ? i + 4 : i
+}
+
+/** 장비가 차지하는 칸 수 (스펙 또는 equipment.size) */
+function getSize(eq: PlacedEquipment): EquipmentSize {
+  if (eq.size) return eq.size
+  const spec = EQUIPMENT_SPECS[eq.kind]
+  return { width: spec?.width ?? 1, height: spec?.height ?? 1 }
+}
+
+/** 한 장비가 점유하는 모든 셀 (기준점 기준) */
+export function getOccupiedCells(eq: PlacedEquipment): GridPosition[] {
+  const { width, height } = getSize(eq)
+  const cells: GridPosition[] = []
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      cells.push({ row: eq.position.row + r, col: eq.position.col + c })
+    }
+  }
+  return cells
+}
+
+/** (row,col)이 layout 내 어느 장비에 의해 점유되는지 반환 (다칸 포함) */
+export function getEquipmentAt(
+  layout: LayoutMap,
+  row: number,
+  col: number
+): PlacedEquipment | undefined {
+  if (row < 0 || row >= layout.rows || col < 0 || col >= layout.cols) return undefined
+  return layout.equipment.find((e) => {
+    const cells = getOccupiedCells(e)
+    return cells.some((c) => c.row === row && c.col === col)
+  })
+}
+
+/** 해당 셀이 이미 어떤 장비에 의해 점유 중인지 */
+export function isCellOccupied(layout: LayoutMap, row: number, col: number): boolean {
+  return getEquipmentAt(layout, row, col) != null
+}
+
+const cellKey = (row: number, col: number) => `${row},${col}`
+
+/** 다칸 장비의 "원점이 아닌" 셀들 (셀 병합 시 비워둘 칸). 원점은 장비 기준 position */
+export function getCoveredCellKeys(layout: LayoutMap): Set<string> {
+  const covered = new Set<string>()
+  for (const eq of layout.equipment) {
+    const { width, height } = getSize(eq)
+    if (width <= 1 && height <= 1) continue
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (r === 0 && c === 0) continue
+        covered.add(cellKey(eq.position.row + r, eq.position.col + c))
+      }
+    }
+  }
+  return covered
+}
+
+/** (row,col)에 장비를 배치할 때 필요한 칸들이 모두 비어 있는지 (경계 포함) */
+export function canPlaceAt(
+  layout: LayoutMap,
+  row: number,
+  col: number,
+  size: EquipmentSize
+): boolean {
+  for (let r = 0; r < size.height; r++) {
+    for (let c = 0; c < size.width; c++) {
+      const nr = row + r
+      const nc = col + c
+      if (nr < 0 || nr >= layout.rows || nc < 0 || nc >= layout.cols) return false
+      if (isCellOccupied(layout, nr, nc)) return false
+    }
+  }
+  return true
 }
 
 /** (fromRow, fromCol) → (toRow, toCol) 이동 방향을 0/90/180/270으로 */
@@ -29,18 +104,7 @@ function getMoveDirection(
   return 0
 }
 
-export function getEquipmentAt(
-  layout: LayoutMap,
-  row: number,
-  col: number
-): PlacedEquipment | undefined {
-  if (row < 0 || row >= layout.rows || col < 0 || col >= layout.cols) return undefined
-  return layout.equipment.find(
-    (e) => e.position.row === row && e.position.col === col
-  )
-}
-
-/** rotation(도) 기준 다음 셀 좌표 */
+/** rotation(도) 기준 다음 셀 좌표 (1칸) */
 export function getNextCell(
   row: number,
   col: number,
@@ -51,6 +115,21 @@ export function getNextCell(
     row: row + ROW_DELTA[i],
     col: col + COL_DELTA[i],
   }
+}
+
+/** 다칸 기계의 출력 방향에 있는 다음 셀 (스펙 outputSide + rotation) */
+function getMachineOutputNext(layout: LayoutMap, eq: PlacedEquipment): GridPosition | null {
+  const spec = EQUIPMENT_SPECS[eq.kind]
+  if (!spec?.ports) return getNextCell(eq.position.row, eq.position.col, eq.rotation)
+  const { width, height } = getSize(eq)
+  const outDir = (spec.ports.outputSide + eq.rotation) % 360
+  const i = rotationToIndex(outDir)
+  const next = {
+    row: eq.position.row + ROW_DELTA[i] * height,
+    col: eq.position.col + COL_DELTA[i] * width,
+  }
+  if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) return null
+  return next
 }
 
 /** 입고 한 곳에서 출고까지의 경로. 기계1·컨베이어 입력방향 반영. */
@@ -113,12 +192,16 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
         current = next
       } else break
     } else if (eq.kind === 'machine1') {
-      const next = getNextCell(current.row, current.col, eq.rotation)
+      const next = getMachineOutputNext(layout, eq)
+      if (!next) break
       fromRow = current.row
       fromCol = current.col
-      if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) break
       if (visited.has(key(next.row, next.col))) break
       const nextEq = getEquipmentAt(layout, next.row, next.col)
+      if (nextEq?.kind === 'inbound') {
+        path.push(next)
+        return path
+      }
       if (nextEq?.kind === 'outbound') {
         path.push(next)
         return path
@@ -132,4 +215,92 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
   }
 
   return null
+}
+
+/** 출고 장비에서 시작해 입고/출고/막힘까지 경로. 출고 시 창고에서 선택 품목 차감은 호출측에서. */
+export function buildPathFromOutbound(
+  layout: LayoutMap,
+  outboundId: string
+): GridPosition[] | null {
+  const outbound = layout.equipment.find((e) => e.kind === 'outbound' && e.id === outboundId)
+  if (!outbound) return null
+
+  const path: GridPosition[] = [{ row: outbound.position.row, col: outbound.position.col }]
+  const visited = new Set<string>()
+  const key = (r: number, c: number) => `${r},${c}`
+  visited.add(key(outbound.position.row, outbound.position.col))
+
+  const firstDeltas: [number, number][] = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+  let current: GridPosition | null = null
+  let fromRow = outbound.position.row
+  let fromCol = outbound.position.col
+
+  for (const [dr, dc] of firstDeltas) {
+    const nr = outbound.position.row + dr
+    const nc = outbound.position.col + dc
+    if (nr < 0 || nr >= layout.rows || nc < 0 || nc >= layout.cols) continue
+    const eq = getEquipmentAt(layout, nr, nc)
+    if (eq?.kind === 'inbound') {
+      path.push({ row: nr, col: nc })
+      return path
+    }
+    if (eq?.kind === 'outbound') {
+      path.push({ row: nr, col: nc })
+      return path
+    }
+    if (eq?.kind === 'conveyor' || eq?.kind === 'machine1') {
+      current = { row: nr, col: nc }
+      path.push(current)
+      visited.add(key(nr, nc))
+      fromRow = outbound.position.row
+      fromCol = outbound.position.col
+      break
+    }
+  }
+
+  if (!current) return path.length > 1 ? path : null
+
+  while (current) {
+    const eq = getEquipmentAt(layout, current.row, current.col)
+    if (!eq) break
+
+    if (eq.kind === 'conveyor') {
+      const fromDir = getMoveDirection(fromRow, fromCol, current.row, current.col)
+      const inputExpected = (fromDir + 180) % 360
+      if (eq.inputDirection != null && eq.inputDirection !== inputExpected) break
+      const next = getNextCell(current.row, current.col, eq.rotation)
+      fromRow = current.row
+      fromCol = current.col
+      if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) break
+      if (visited.has(key(next.row, next.col))) break
+      const nextEq = getEquipmentAt(layout, next.row, next.col)
+      if (nextEq?.kind === 'inbound' || nextEq?.kind === 'outbound') {
+        path.push(next)
+        return path
+      }
+      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+        path.push(next)
+        visited.add(key(next.row, next.col))
+        current = next
+      } else break
+    } else if (eq.kind === 'machine1') {
+      const next = getMachineOutputNext(layout, eq)
+      if (!next) break
+      fromRow = current.row
+      fromCol = current.col
+      if (visited.has(key(next.row, next.col))) break
+      const nextEq = getEquipmentAt(layout, next.row, next.col)
+      if (nextEq?.kind === 'inbound' || nextEq?.kind === 'outbound') {
+        path.push(next)
+        return path
+      }
+      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+        path.push(next)
+        visited.add(key(next.row, next.col))
+        current = next
+      } else break
+    } else break
+  }
+
+  return path
 }
