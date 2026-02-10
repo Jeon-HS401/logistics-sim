@@ -26,7 +26,11 @@ export interface PlacedEquipment {
   id: string
   kind: EquipmentKind
   position: GridPosition
-  /** 0, 90, 180, 270 (도) - 출구 방향 등 */
+  /**
+   * 0, 90, 180, 270 (도).
+   * 컨베이어: 이동 방향(연결 방향). 0=→, 90=↓, 180=←, 270=↑. 시뮬레이션에서 연결로 해석.
+   * 기타: 출구 방향 등.
+   */
   rotation: number
   /** 이동 속도 (칸/초) - conveyor 등 */
   speed?: number

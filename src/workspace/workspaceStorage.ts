@@ -13,8 +13,8 @@ import type {
 const STORAGE_KEY = 'logistics-sim-workspace'
 
 const DEFAULT_LAYOUT: LayoutMap = {
-  rows: 8,
-  cols: 12,
+  rows: 32,
+  cols: 32,
   equipment: [],
 }
 

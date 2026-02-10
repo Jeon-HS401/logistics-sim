@@ -92,7 +92,11 @@ function App() {
   }, [])
 
   const handleSaveVersion = useCallback((slotId: string, label?: string) => {
-    setWorkspace((prev) => addVersion(prev, slotId, label))
+    setWorkspace((prev) => {
+      const next = addVersion(prev, slotId, label)
+      saveWorkspace(next)
+      return next
+    })
   }, [])
 
   const handleRestoreVersion = useCallback((version: SlotVersion) => {
@@ -142,7 +146,7 @@ function App() {
       <main className="app-main">
         {mode === 'layout' && (
           <LayoutMode
-            layout={currentSlot?.layout ?? { rows: 8, cols: 12, equipment: [] }}
+            layout={currentSlot?.layout ?? { rows: 32, cols: 32, equipment: [] }}
             onLayoutChange={handleLayoutChange}
           />
         )}

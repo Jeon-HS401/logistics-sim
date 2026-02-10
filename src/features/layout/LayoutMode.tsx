@@ -7,6 +7,14 @@ const ZOOM_MAX = 2
 const ZOOM_STEP = 0.25
 const CELL_BASE = 32
 
+/** 컨베이어 이동 방향: 0=→, 90=↓, 180=←, 270=↑ (시뮬레이션에서 연결로 인지) */
+const CONVEYOR_DIRECTIONS: { deg: number; label: string }[] = [
+  { deg: 0, label: '→' },
+  { deg: 90, label: '↓' },
+  { deg: 180, label: '←' },
+  { deg: 270, label: '↑' },
+]
+
 const EQUIPMENT_LABELS: Record<string, string> = {
   inbound: '입고',
   outbound: '출고',
@@ -31,7 +39,10 @@ const KINDS: { value: PlacedEquipment['kind']; label: string }[] = [
 
 export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const [selectedKind, setSelectedKind] = useState<PlacedEquipment['kind'] | null>(null)
+  const [conveyorDirection, setConveyorDirection] = useState(0)
   const [zoom, setZoom] = useState(1)
+
+  const rotationWhenPlacing = selectedKind === 'conveyor' ? conveyorDirection : 0
 
   const handleCellClick = (pos: GridPosition) => {
     if (!selectedKind) return
@@ -40,7 +51,7 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
       ...map,
       equipment: [
         ...map.equipment,
-        { id, kind: selectedKind, position: pos, rotation: 0 },
+        { id, kind: selectedKind, position: pos, rotation: rotationWhenPlacing },
       ],
     })
   }
@@ -49,6 +60,16 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
     onLayoutChange({
       ...map,
       equipment: map.equipment.filter((e) => e.id !== id),
+    })
+  }
+
+  const cycleConveyorDirection = (eq: PlacedEquipment) => {
+    const nextRotation = (eq.rotation + 90) % 360
+    onLayoutChange({
+      ...map,
+      equipment: map.equipment.map((e) =>
+        e.id === eq.id ? { ...e, rotation: nextRotation } : e
+      ),
     })
   }
 
@@ -90,8 +111,28 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                 +
               </button>
             </div>
+            {selectedKind === 'conveyor' && (
+              <div className="layout-direction">
+                <span className="layout-toolbar-label">이동 방향:</span>
+                {CONVEYOR_DIRECTIONS.map((d) => (
+                  <button
+                    key={d.deg}
+                    type="button"
+                    className={`layout-direction-btn ${conveyorDirection === d.deg ? 'active' : ''}`}
+                    onClick={() => setConveyorDirection(d.deg)}
+                    title={`${d.deg}°`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {selectedKind && (
-              <p className="layout-hint">칸을 클릭해 배치, 배치된 칸 클릭 시 제거.</p>
+              <p className="layout-hint">
+                {selectedKind === 'conveyor'
+                  ? '칸 클릭=배치(방향 설정됨), 컨베이어 칸 클릭=방향 변경.'
+                  : '칸을 클릭해 배치, 배치된 칸 클릭 시 제거.'}
+              </p>
             )}
           </section>
 
@@ -119,17 +160,29 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                       role="button"
                       tabIndex={0}
                       className={`layout-cell ${eq ? 'has-equipment' : ''}`}
-                      onClick={() => (eq ? removeEquipment(eq.id) : handleCellClick({ row, col }))}
+                      onClick={() =>
+                        eq
+                          ? eq.kind === 'conveyor'
+                            ? cycleConveyorDirection(eq)
+                            : removeEquipment(eq.id)
+                          : handleCellClick({ row, col })
+                      }
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault()
-                          eq ? removeEquipment(eq.id) : handleCellClick({ row, col })
+                          eq
+                            ? eq.kind === 'conveyor'
+                              ? cycleConveyorDirection(eq)
+                              : removeEquipment(eq.id)
+                            : handleCellClick({ row, col })
                         }
                       }}
                     >
                       {eq && (
-                        <span className="layout-cell-label">
-                          {EQUIPMENT_LABELS[eq.kind] ?? eq.kind.slice(0, 2)}
+                        <span className={`layout-cell-label ${eq.kind === 'conveyor' ? 'layout-cell-label--conveyor' : ''}`}>
+                          {eq.kind === 'conveyor'
+                            ? (CONVEYOR_DIRECTIONS.find((d) => d.deg === eq.rotation)?.label ?? '→')
+                            : (EQUIPMENT_LABELS[eq.kind] ?? eq.kind.slice(0, 2))}
                         </span>
                       )}
                     </div>
