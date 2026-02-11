@@ -7,7 +7,8 @@
 import type { LayoutMap, PlacedEquipment, GridPosition, EquipmentSize } from '../../models/types'
 import { EQUIPMENT_SPECS } from '../../data/equipmentSpecs'
 
-const ROW_DELTA = [0, 1, 0, -1]   // 0°, 90°, 180°, 270°
+// 0°=→, 90°=↓(row 감소), 180°=←, 270°=↑(row 증가). 그리드 row 0=하단, row 증가=위쪽
+const ROW_DELTA = [0, -1, 0, 1]
 const COL_DELTA = [1, 0, -1, 0]
 
 function rotationToIndex(deg: number): number {
@@ -113,7 +114,27 @@ export function canPlaceAtExcept(
   return true
 }
 
-/** (fromRow, fromCol) → (toRow, toCol) 이동 방향을 0/90/180/270으로 */
+/** 일괄 이동 시: exceptIds에 있는 장비 칸은 비어 있는 것으로 간주 */
+export function canPlaceAtExceptIds(
+  layout: LayoutMap,
+  row: number,
+  col: number,
+  size: EquipmentSize,
+  exceptIds: Set<string>
+): boolean {
+  for (let r = 0; r < size.height; r++) {
+    for (let c = 0; c < size.width; c++) {
+      const nr = row + r
+      const nc = col + c
+      if (nr < 0 || nr >= layout.rows || nc < 0 || nc >= layout.cols) return false
+      const eq = getEquipmentAt(layout, nr, nc)
+      if (eq != null && !exceptIds.has(eq.id)) return false
+    }
+  }
+  return true
+}
+
+/** (fromRow, fromCol) → (toRow, toCol) 이동 방향. 0=→, 90=↓, 180=←, 270=↑ */
 function getMoveDirection(
   fromRow: number,
   fromCol: number,
@@ -123,9 +144,9 @@ function getMoveDirection(
   const dr = toRow - fromRow
   const dc = toCol - fromCol
   if (dc === 1 && dr === 0) return 0
-  if (dr === 1 && dc === 0) return 90
+  if (dr === -1 && dc === 0) return 90
   if (dc === -1 && dr === 0) return 180
-  if (dr === -1 && dc === 0) return 270
+  if (dr === 1 && dc === 0) return 270
   return 0
 }
 
@@ -142,19 +163,62 @@ export function getNextCell(
   }
 }
 
-/** 다칸 기계의 출력 방향에 있는 다음 셀 (스펙 outputSide + rotation) */
-function getMachineOutputNext(layout: LayoutMap, eq: PlacedEquipment): GridPosition | null {
+/**
+ * 다칸 기계의 출력 포트별 "다음 셀" 목록 (포트 번호 순).
+ * 각 입출력 포트는 동일 작업 수행, 순서 처리·특정 포트만 열린 경우에도 넘버링으로 안전하게 처리.
+ */
+export function getMachineOutputPortNextCells(
+  layout: LayoutMap,
+  eq: PlacedEquipment
+): { portIndex: number; row: number; col: number }[] {
   const spec = EQUIPMENT_SPECS[eq.kind]
-  if (!spec?.ports) return getNextCell(eq.position.row, eq.position.col, eq.rotation)
+  if (!spec?.ports) {
+    const single = getNextCell(eq.position.row, eq.position.col, eq.rotation)
+    if (
+      single.row < 0 ||
+      single.row >= layout.rows ||
+      single.col < 0 ||
+      single.col >= layout.cols
+    )
+      return []
+    return [{ portIndex: 0, row: single.row, col: single.col }]
+  }
   const { width, height } = getSize(eq)
+  const portCount = spec.ports.outputPortCount
   const outDir = (spec.ports.outputSide + eq.rotation) % 360
   const i = rotationToIndex(outDir)
-  const next = {
-    row: eq.position.row + ROW_DELTA[i] * height,
-    col: eq.position.col + COL_DELTA[i] * width,
+  const result: { portIndex: number; row: number; col: number }[] = []
+  // 0°=우: (row+r, col+width), 90°=하: (row+height, col+c), 180°=좌: (row+r, col-1), 270°=상: (row-1, col+c)
+  if (i === 0) {
+    for (let r = 0; r < portCount && r < height; r++) {
+      const row = eq.position.row + r
+      const col = eq.position.col + width
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: r, row, col })
+    }
+  } else if (i === 1) {
+    for (let c = 0; c < portCount && c < width; c++) {
+      const row = eq.position.row + height
+      const col = eq.position.col + c
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: c, row, col })
+    }
+  } else if (i === 2) {
+    for (let r = 0; r < portCount && r < height; r++) {
+      const row = eq.position.row + r
+      const col = eq.position.col - 1
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: r, row, col })
+    }
+  } else {
+    for (let c = 0; c < portCount && c < width; c++) {
+      const row = eq.position.row - 1
+      const col = eq.position.col + c
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: c, row, col })
+    }
   }
-  if (next.row < 0 || next.row >= layout.rows || next.col < 0 || next.col >= layout.cols) return null
-  return next
+  return result
 }
 
 /** 입고 한 곳에서 출고까지의 경로. 기계1·컨베이어 입력방향 반영. */
@@ -216,11 +280,23 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
         current = next
       } else break
     } else if (isFlowMachine(eq)) {
-      const next = getMachineOutputNext(layout, eq)
+      const outputCells = getMachineOutputPortNextCells(layout, eq)
+      let next: GridPosition | null = null
+      for (const { row, col } of outputCells) {
+        if (visited.has(key(row, col))) continue
+        const nextEq = getEquipmentAt(layout, row, col)
+        if (nextEq?.kind === 'inbound' || nextEq?.kind === 'outbound') {
+          next = { row, col }
+          break
+        }
+        if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
+          next = { row, col }
+          break
+        }
+      }
       if (!next) break
       fromRow = current.row
       fromCol = current.col
-      if (visited.has(key(next.row, next.col))) break
       const nextEq = getEquipmentAt(layout, next.row, next.col)
       if (nextEq?.kind === 'inbound') {
         path.push(next)
@@ -230,11 +306,9 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
         path.push(next)
         return path
       }
-      if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
-        path.push(next)
-        visited.add(key(next.row, next.col))
-        current = next
-      } else break
+      path.push(next)
+      visited.add(key(next.row, next.col))
+      current = next
     } else break
   }
 
@@ -307,21 +381,31 @@ export function buildPathFromOutbound(
         current = next
       } else break
     } else if (isFlowMachine(eq)) {
-      const next = getMachineOutputNext(layout, eq)
+      const outputCells = getMachineOutputPortNextCells(layout, eq)
+      let next: GridPosition | null = null
+      for (const { row, col } of outputCells) {
+        if (visited.has(key(row, col))) continue
+        const nextEq = getEquipmentAt(layout, row, col)
+        if (nextEq?.kind === 'inbound' || nextEq?.kind === 'outbound') {
+          next = { row, col }
+          break
+        }
+        if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
+          next = { row, col }
+          break
+        }
+      }
       if (!next) break
       fromRow = current.row
       fromCol = current.col
-      if (visited.has(key(next.row, next.col))) break
       const nextEq = getEquipmentAt(layout, next.row, next.col)
       if (nextEq?.kind === 'inbound' || nextEq?.kind === 'outbound') {
         path.push(next)
         return path
       }
-      if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
-        path.push(next)
-        visited.add(key(next.row, next.col))
-        current = next
-      } else break
+      path.push(next)
+      visited.add(key(next.row, next.col))
+      current = next
     } else break
   }
 

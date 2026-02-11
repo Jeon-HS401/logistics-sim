@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { LayoutMap, PlacedEquipment, GridPosition, ItemType } from '../../models/types'
-import { buildPathFromOutbound, getEquipmentAt, canPlaceAt, canPlaceAtExcept, getCoveredCellKeys } from './pathUtils'
+import { buildPathFromOutbound, getEquipmentAt, canPlaceAt, canPlaceAtExcept, canPlaceAtExceptIds, getCoveredCellKeys } from './pathUtils'
 import { EQUIPMENT_SPECS } from '../../data/equipmentSpecs'
-import { ITEM_TYPES_ALL, MACHINE1_TRANSFORM } from '../../data/dummyScenario'
+import { MACHINE1_TRANSFORM } from '../../data/dummyScenario'
+import { getRecipeItemIds, getRecipesByMachineId, getRecipeByRecipeId, getDefaultRecipeIdForInput, getItemCategory, EQUIPMENT_KIND_TO_MACHINE_ID } from '../../data'
+import { Modal } from '../../components/Modal'
 import { ZONE_PRESETS, DEFAULT_ZONE_GRID } from '../../data/zonePresets'
+
+const WAREHOUSE_ITEM_IDS = getRecipeItemIds()
 import './LayoutMode.css'
 
 const TEST_STEP_MS = 400
@@ -82,10 +86,13 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const [testStepIndex, setTestStepIndex] = useState(0)
   const [testRunning, setTestRunning] = useState(false)
   const [testMessage, setTestMessage] = useState<string | null>(null)
-  const [testOutboundSourceItem, setTestOutboundSourceItem] = useState<ItemType | null>(null)
+  const [testOutboundSourceItem, setTestOutboundSourceItem] = useState<string | null>(null)
   const [gridZoom, setGridZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
+  const [multiSelectMode, setMultiSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [warehouseModalOpen, setWarehouseModalOpen] = useState(false)
   const panStartRef = useRef<{ clientX: number; clientY: number; panX: number; panY: number } | null>(null)
   const setPanningRef = useRef<(v: boolean) => void>(() => {})
   setPanningRef.current = setIsPanning
@@ -109,14 +116,33 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const selectedEquipment = selectedEquipmentId
     ? map.equipment.find((e) => e.id === selectedEquipmentId)
     : null
+  const selectedIdsSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const selectedCount = selectedIds.length
 
-  const getFinalItemTypeAfterPath = (path: GridPosition[], startItem: ItemType): ItemType => {
+  /** 경로상 기계 통과 시: 입력 품목에 따라 레시피 적용. 자동=입력과 맞는 레시피, 수동=선택 레시피의 입력과 일치할 때만 변환. */
+  const getFinalItemTypeAfterPath = (path: GridPosition[], startItem: string): string => {
     let item = startItem
     for (const pos of path) {
       const eq = getEquipmentAt(map, pos.row, pos.col)
-      if (eq?.kind === 'machine1') {
-        const next = MACHINE1_TRANSFORM[item]
+      if (!eq) continue
+      if (eq.kind === 'machine1') {
+        const next = MACHINE1_TRANSFORM[item as ItemType]
         if (next) item = next
+        continue
+      }
+      const machineId = EQUIPMENT_KIND_TO_MACHINE_ID[eq.kind]
+      if (!machineId) continue
+      if (eq.activeRecipeId) {
+        const recipe = getRecipeByRecipeId(eq.activeRecipeId)
+        if (recipe && (recipe.input_1.item_id === item || recipe.input_2?.item_id === item)) {
+          item = recipe.output.item_id
+        }
+      } else {
+        const recipeId = getDefaultRecipeIdForInput(machineId, item)
+        if (recipeId) {
+          const recipe = getRecipeByRecipeId(recipeId)
+          if (recipe) item = recipe.output.item_id
+        }
       }
     }
     return item
@@ -147,7 +173,41 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
   const removeEquipment = (id: string) => {
     onLayoutChange({ ...map, equipment: map.equipment.filter((e) => e.id !== id) })
     setSelectedEquipmentId(null)
+    setSelectedIds((prev) => prev.filter((i) => i !== id))
   }
+
+  const clearMultiSelection = () => {
+    setSelectedIds([])
+    setSelectedEquipmentId(null)
+  }
+
+  const removeSelectedEquipment = () => {
+    if (selectedIds.length === 0) return
+    onLayoutChange({ ...map, equipment: map.equipment.filter((e) => !selectedIdsSet.has(e.id)) })
+    setSelectedIds([])
+    setSelectedEquipmentId(null)
+  }
+
+  const moveSelectedBatch = useCallback((deltaRow: number, deltaCol: number) => {
+    if (selectedIds.length === 0) return
+    const toMove = map.equipment.filter((e) => selectedIdsSet.has(e.id))
+    const newPositions = toMove.map((eq) => {
+      const spec = EQUIPMENT_SPECS[eq.kind]
+      const size = eq.size ?? (spec ? { width: spec.width, height: spec.height } : { width: 1, height: 1 })
+      return { eq, newRow: eq.position.row + deltaRow, newCol: eq.position.col + deltaCol, size }
+    })
+    for (const { newRow, newCol, size } of newPositions) {
+      if (!canPlaceAtExceptIds(map, newRow, newCol, size, selectedIdsSet)) return
+    }
+    onLayoutChange({
+      ...map,
+      equipment: map.equipment.map((e) => {
+        if (!selectedIdsSet.has(e.id)) return e
+        const np = newPositions.find((p) => p.eq.id === e.id)
+        return np ? { ...e, position: { row: np.newRow, col: np.newCol } } : e
+      }),
+    })
+  }, [map, onLayoutChange, selectedIds, selectedIdsSet])
 
   const moveEquipment = useCallback((id: string, newRow: number, newCol: number) => {
     const eq = map.equipment.find((e) => e.id === id)
@@ -165,8 +225,14 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
 
   const moveEquipmentRef = useRef(moveEquipment)
   moveEquipmentRef.current = moveEquipment
+  const moveSelectedBatchRef = useRef(moveSelectedBatch)
+  moveSelectedBatchRef.current = moveSelectedBatch
   const mapRef = useRef(map)
   mapRef.current = map
+  const selectedIdsSetRef = useRef(selectedIdsSet)
+  selectedIdsSetRef.current = selectedIdsSet
+  const multiSelectModeRef = useRef(multiSelectMode)
+  multiSelectModeRef.current = multiSelectMode
 
   const handleGridSizeChange = (rows: number, cols: number) => {
     if (rows === map.rows && cols === map.cols) return
@@ -300,7 +366,13 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
           const newCol = parseInt(c, 10)
           const eq = mapRef.current.equipment.find((e) => e.id === id)
           if (eq && (eq.position.row !== newRow || eq.position.col !== newCol)) {
-            moveEquipmentRef.current(id, newRow, newCol)
+            if (multiSelectModeRef.current && selectedIdsSetRef.current.has(id)) {
+              const dr = newRow - eq.position.row
+              const dc = newCol - eq.position.col
+              moveSelectedBatchRef.current(dr, dc)
+            } else {
+              moveEquipmentRef.current(id, newRow, newCol)
+            }
           }
         }
       }
@@ -479,16 +551,38 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
               −
             </button>
             <span className="layout-zoom-value">{Math.round(gridZoom * 100)}%</span>
-            <button
-              type="button"
-              className="layout-zoom-btn"
-              onClick={() => setGridZoom((z) => Math.min(2, z + 0.25))}
-              title="확대"
-              aria-label="확대"
-            >
-              +
-            </button>
+          <button
+            type="button"
+            className="layout-zoom-btn"
+            onClick={() => setGridZoom((z) => Math.min(2, z + 0.25))}
+            title="확대"
+            aria-label="확대"
+          >
+            +
+          </button>
           </div>
+          <button
+            type="button"
+            className={`layout-btn layout-bulk-select-btn ${multiSelectMode ? 'active' : ''}`}
+            onClick={() => {
+              setMultiSelectMode((v) => !v)
+              if (multiSelectMode) setSelectedIds([])
+            }}
+            title="일괄 선택"
+          >
+            일괄 선택
+          </button>
+          {multiSelectMode && selectedCount > 0 && (
+            <>
+              <span className="layout-bulk-count">{selectedCount}개 선택</span>
+              <button type="button" className="layout-btn layout-bulk-clear-btn" onClick={clearMultiSelection}>
+                선택 해제
+              </button>
+              <button type="button" className="layout-btn layout-bulk-remove-btn" onClick={removeSelectedEquipment}>
+                선택한 장비 제거
+              </button>
+            </>
+          )}
           <button
             type="button"
             className="layout-test-btn"
@@ -497,13 +591,24 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
           >
             {testRunning ? '흐름 시연 중…' : '물품 1개 흐름 (출고→입고)'}
           </button>
+          <button
+            type="button"
+            className="layout-btn layout-warehouse-btn"
+            onClick={() => setWarehouseModalOpen(true)}
+            title="창고 재고 수량"
+          >
+            창고
+          </button>
           {testMessage && <span className="layout-test-msg">{testMessage}</span>}
-          {selectedKind && (
+          {selectedKind && !multiSelectMode && (
             <span className="layout-hint">
               {selectedKind === 'conveyor'
                 ? '칸 클릭=1개 배치 · 빈 칸에서 드래그=직선(가로/세로) 연속 배치 · 장비 클릭=선택 · 장비 드래그=이동'
                 : '칸 클릭=배치 · 장비 클릭=선택 · 장비 드래그=이동'}
             </span>
+          )}
+          {multiSelectMode && (
+            <span className="layout-hint">장비 클릭=선택/해제 · 빈 칸 클릭=전체 해제 · 선택한 장비 드래그=일괄 이동</span>
           )}
         </div>
         <div className="layout-zone-area">
@@ -581,7 +686,7 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                     key={key}
                     role="button"
                     tabIndex={0}
-                    className={`layout-cell ${eq ? 'has-equipment layout-cell--border' : ''} ${eq ? `layout-cell--${eq.kind}` : ''} ${isTestPath ? 'layout-cell--test-path' : ''} ${isTestCurrent ? 'layout-cell--test-current' : ''} ${selectedEquipmentId === eq?.id ? 'layout-cell--selected' : ''} ${eq ? 'layout-cell--draggable' : ''} ${isInPowerRange ? 'layout-cell--power-range' : ''}`}
+                    className={`layout-cell ${eq ? 'has-equipment layout-cell--border' : ''} ${eq ? `layout-cell--${eq.kind}` : ''} ${isTestPath ? 'layout-cell--test-path' : ''} ${isTestCurrent ? 'layout-cell--test-current' : ''} ${!multiSelectMode && selectedEquipmentId === eq?.id ? 'layout-cell--selected' : ''} ${multiSelectMode && eq && selectedIdsSet.has(eq.id) ? 'layout-cell--multi-selected' : ''} ${eq ? 'layout-cell--draggable' : ''} ${isInPowerRange ? 'layout-cell--power-range' : ''}`}
                     style={{
                       gridRow: `${map.rows - row - rowSpan + 1} / span ${rowSpan}`,
                       gridColumn: `${col + 1} / span ${colSpan}`,
@@ -604,12 +709,28 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                         didDragRef.current = false
                         return
                       }
-                      eq ? setSelectedEquipmentId(eq.id) : handleCellClick({ row, col })
+                      if (multiSelectMode) {
+                        if (eq) {
+                          setSelectedIds((prev) =>
+                            prev.includes(eq.id) ? prev.filter((i) => i !== eq.id) : [...prev, eq.id]
+                          )
+                        } else {
+                          clearMultiSelection()
+                        }
+                      } else {
+                        eq ? setSelectedEquipmentId(eq.id) : handleCellClick({ row, col })
+                      }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        eq ? setSelectedEquipmentId(eq.id) : handleCellClick({ row, col })
+                        if (multiSelectMode && eq) {
+                          setSelectedIds((prev) =>
+                            prev.includes(eq.id) ? prev.filter((i) => i !== eq.id) : [...prev, eq.id]
+                          )
+                        } else if (!multiSelectMode) {
+                          eq ? setSelectedEquipmentId(eq.id) : handleCellClick({ row, col })
+                        }
                       }
                     }}
                   >
@@ -629,41 +750,83 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
         <footer className="layout-footer">장비 {map.equipment.length}개</footer>
       </div>
 
-      {/* 우측: 창고(숫자 입력) + 선택 장비 속성 */}
+      <Modal
+        open={warehouseModalOpen}
+        onClose={() => setWarehouseModalOpen(false)}
+        title="창고 (Warehouse)"
+      >
+        <p className="layout-warehouse-desc">재료 특성별 재고 수량</p>
+        <div className="layout-warehouse-table-wrap">
+          <table className="layout-warehouse-table">
+            <thead>
+              <tr>
+                <th className="layout-warehouse-th layout-warehouse-th--category">구분</th>
+                <th className="layout-warehouse-th">품목</th>
+                <th className="layout-warehouse-th layout-warehouse-th--qty">수량</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...WAREHOUSE_ITEM_IDS]
+                .sort((a, b) => {
+                  const catA = getItemCategory(a)
+                  const catB = getItemCategory(b)
+                  if (catA !== catB) return catA === '원자재' ? -1 : 1
+                  return a.localeCompare(b)
+                })
+                .map((itemId) => {
+                  const count = (map.warehouseInventory ?? {})[itemId] ?? 0
+                  const category = getItemCategory(itemId)
+                  return (
+                    <tr key={itemId} className="layout-warehouse-tr">
+                      <td className="layout-warehouse-td layout-warehouse-td--category">{category}</td>
+                      <td className="layout-warehouse-td layout-warehouse-td--name">{itemId}</td>
+                      <td className="layout-warehouse-td layout-warehouse-td--qty">
+                        <input
+                          type="number"
+                          min={0}
+                          value={count}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value, 10)
+                            onLayoutChange({
+                              ...map,
+                              warehouseInventory: {
+                                ...(map.warehouseInventory ?? {}),
+                                [itemId]: Number.isNaN(v) ? 0 : Math.max(0, v),
+                              },
+                            })
+                          }}
+                          className="layout-warehouse-input"
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+            </tbody>
+          </table>
+        </div>
+      </Modal>
+
+      {/* 우측: 선택 장비 속성 (창고·관리 패널은 모달로) */}
       <aside className="layout-panel-right">
-        <section className="layout-warehouse">
-          <header className="layout-panel-head">창고 (Warehouse)</header>
-          <p className="layout-warehouse-desc">품목별 재고 수량 입력</p>
-          <div className="layout-warehouse-list">
-            {ITEM_TYPES_ALL.map((item) => {
-              const count = (map.warehouseInventory ?? {})[item] ?? 0
-              return (
-                <div key={item} className="layout-warehouse-row">
-                  <label className="layout-warehouse-label">{item}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={count}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value, 10)
-                      onLayoutChange({
-                        ...map,
-                        warehouseInventory: {
-                          ...(map.warehouseInventory ?? {}),
-                          [item]: Number.isNaN(v) ? 0 : Math.max(0, v),
-                        },
-                      })
-                    }}
-                    className="layout-warehouse-input"
-                  />
-                </div>
-              )
-            })}
-          </div>
-        </section>
         <section className="layout-props">
           <header className="layout-panel-head">선택 장비</header>
-          {selectedEquipment ? (
+          {multiSelectMode ? (
+            <>
+              {selectedCount > 0 ? (
+                <div className="layout-props-content">
+                  <p className="layout-bulk-summary">{selectedCount}개 장비 선택됨</p>
+                  <button type="button" className="layout-btn layout-bulk-clear-btn" onClick={clearMultiSelection}>
+                    선택 해제
+                  </button>
+                  <button type="button" className="layout-remove-btn" onClick={removeSelectedEquipment}>
+                    선택한 장비 제거
+                  </button>
+                </div>
+              ) : (
+                <p className="layout-props-hint">일괄 선택 모드. 그리드에서 장비를 클릭해 선택하세요.</p>
+              )}
+            </>
+          ) : selectedEquipment ? (
             <div className="layout-props-content">
               <div className="layout-props-header">
                 <span className="layout-props-title">
@@ -684,7 +847,7 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                   <select
                     value={selectedEquipment.outboundSelectedItem ?? ''}
                     onChange={(e) => {
-                      const v = (e.target.value || undefined) as ItemType | undefined
+                      const v = e.target.value || undefined
                       onLayoutChange({
                         ...map,
                         equipment: map.equipment.map((eq) =>
@@ -694,8 +857,8 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                     }}
                   >
                     <option value="">선택 안 함</option>
-                    {ITEM_TYPES_ALL.map((item) => (
-                      <option key={item} value={item}>{item}</option>
+                    {WAREHOUSE_ITEM_IDS.map((itemId) => (
+                      <option key={itemId} value={itemId}>{itemId}</option>
                     ))}
                   </select>
                 </div>
@@ -746,6 +909,64 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                   )}
                 </div>
               )}
+              {MACHINE_LIST.some((m) => m.value === selectedEquipment.kind) && (() => {
+                const machineId = EQUIPMENT_KIND_TO_MACHINE_ID[selectedEquipment.kind]
+                const recipes = machineId ? getRecipesByMachineId(machineId) : []
+                if (recipes.length === 0) return null
+                const activeRecipe = selectedEquipment.activeRecipeId
+                  ? getRecipeByRecipeId(selectedEquipment.activeRecipeId)
+                  : null
+                const processTimeSec = activeRecipe?.process_time_sec
+                return (
+                  <>
+                    <div className="layout-field">
+                      <label className="layout-field-label">레시피</label>
+                      <p className="layout-field-hint">
+                        기본: 입력으로 들어오는 품목과 맞는 레시피가 있으면 자동 선택. 맞는 레시피가 없으면 입력 포트로 들어가지 않음.
+                      </p>
+                      <select
+                        value={selectedEquipment.activeRecipeId ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value || undefined
+                          onLayoutChange({
+                            ...map,
+                            equipment: map.equipment.map((eq) =>
+                              eq.id === selectedEquipment.id ? { ...eq, activeRecipeId: v } : eq
+                            ),
+                          })
+                        }}
+                      >
+                        <option value="">입력 자원에 맞게 자동</option>
+                        {recipes.map((r) => (
+                          <option key={r.recipe_id} value={r.recipe_id}>
+                            {r.input_1.item_id}×{r.input_1.qty}
+                            {r.input_2 ? ` + ${r.input_2.item_id}×${r.input_2.qty}` : ''} → {r.output.item_id}×{r.output.qty}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="layout-machine-interior">
+                      <header className="layout-panel-head">기계 내부</header>
+                      <div className="layout-buffer-row">
+                        <span className="layout-buffer-label">입력 버퍼</span>
+                        <span className="layout-buffer-value">0</span>
+                      </div>
+                      <div className="layout-buffer-row">
+                        <span className="layout-buffer-label">출력 버퍼</span>
+                        <span className="layout-buffer-value">0</span>
+                      </div>
+                      <div className="layout-conversion-time">
+                        <span className="layout-buffer-label">변환 시간</span>
+                        <span className="layout-buffer-value">
+                          {processTimeSec != null ? `${processTimeSec}초` : '—'}
+                          {' / 현재 '}
+                          {processTimeSec != null ? '0초' : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
               <button type="button" className="layout-remove-btn" onClick={() => removeEquipment(selectedEquipment.id)}>
                 장비 제거
               </button>

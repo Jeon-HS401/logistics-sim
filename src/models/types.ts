@@ -68,10 +68,13 @@ export interface PlacedEquipment {
   /** 여러 칸 차지 시 (예: 기계1 2×2). 없으면 1×1. */
   size?: EquipmentSize
   /**
-   * 출고(outbound) 전용: 이 출고 포트에서 창고의 어떤 물품을 내보낼지.
-   * 출고 버튼에서 창고 물품 선택 → 이 필드에 저장.
+   * 출고(outbound) 전용: 이 출고 포트에서 창고의 어떤 물품을 내보낼지 (품목 ID 문자열).
    */
-  outboundSelectedItem?: ItemType
+  outboundSelectedItem?: string
+  /**
+   * 기계 전용: 활성 레시피 ID. 없으면 입력 자원에 맞게 자동 선택.
+   */
+  activeRecipeId?: string
   /** 이동 속도 (칸/초) - conveyor 등 */
   speed?: number
   /** 처리 속도 (개/분) - processor, inbound, outbound 등 */
@@ -87,9 +90,9 @@ export interface LayoutMap {
   equipment: PlacedEquipment[]
   /**
    * 창고 보유량. 명세 §2.1 warehouse inventory[item_id]=int.
-   * 입고→창고 적재, 출고는 선택 품목만 창고에서 가져감.
+   * 품목 ID(문자열)별 수량. 레시피 품목 또는 기존 A/B/C 등.
    */
-  warehouseInventory?: Partial<Record<ItemType, number>>
+  warehouseInventory?: Partial<Record<string, number>>
 }
 
 /** 시뮬레이션 설정 (Phase 2에서 확장) */

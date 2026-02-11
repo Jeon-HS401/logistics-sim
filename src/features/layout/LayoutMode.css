@@ -194,6 +194,35 @@
   text-align: center;
 }
 
+.layout-bulk-select-btn {
+  font-size: 0.8rem;
+}
+.layout-bulk-select-btn.active {
+  border-color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--color-accent);
+}
+.layout-bulk-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.layout-bulk-clear-btn {
+  font-size: 0.78rem;
+}
+.layout-bulk-remove-btn {
+  font-size: 0.78rem;
+  border-color: rgba(210, 153, 34, 0.6);
+  color: var(--color-warning);
+}
+.layout-bulk-remove-btn:hover {
+  background: rgba(210, 153, 34, 0.15);
+}
+.layout-bulk-summary {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
 .layout-test-btn {
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
@@ -382,6 +411,12 @@
   z-index: 1;
 }
 
+.layout-cell--multi-selected {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+  background: rgba(88, 166, 255, 0.12) !important;
+  z-index: 1;
+}
+
 .layout-cell--test-path {
   box-shadow: inset 0 0 0 2px rgba(88, 166, 255, 0.5);
 }
@@ -422,41 +457,67 @@
 }
 
 .layout-warehouse-desc {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.75rem;
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
-.layout-warehouse-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.layout-warehouse-table-wrap {
+  overflow-x: auto;
 }
 
-.layout-warehouse-row {
-  display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  align-items: center;
-  gap: 0.5rem;
+.layout-warehouse-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
-.layout-warehouse-label {
-  font-size: 0.8rem;
+.layout-warehouse-th,
+.layout-warehouse-td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border: 1px solid var(--color-border);
+}
+
+.layout-warehouse-th {
+  background: var(--color-surface-alt, rgba(255, 255, 255, 0.06));
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.layout-warehouse-td {
+  background: var(--color-bg);
   color: var(--color-text);
 }
 
-.layout-warehouse-input {
+.layout-warehouse-tr:nth-child(even) .layout-warehouse-td {
+  background: var(--color-surface-subtle, rgba(255, 255, 255, 0.03));
+}
+
+.layout-warehouse-th--category,
+.layout-warehouse-td--category {
+  width: 5rem;
+  white-space: nowrap;
+}
+
+.layout-warehouse-th--qty,
+.layout-warehouse-td--qty {
+  width: 6rem;
+}
+
+.layout-warehouse-td--qty .layout-warehouse-input {
   width: 100%;
-  padding: 0.4rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   font-size: 0.85rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-bg);
   color: var(--color-text);
   min-width: 0;
+  box-sizing: border-box;
 }
 
-.layout-warehouse-input:focus {
+.layout-warehouse-td--qty .layout-warehouse-input:focus {
   outline: none;
   border-color: var(--color-accent);
 }
@@ -519,6 +580,13 @@
   color: var(--color-text-muted);
 }
 
+.layout-field-hint {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
 .layout-field select {
   padding: 0.4rem;
   font-size: 0.85rem;
@@ -548,6 +616,40 @@
   margin: 0;
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+/* 창고 모달 열기 버튼 (툴바) */
+.layout-warehouse-btn {
+  margin-left: 0.25rem;
+}
+
+/* 기계 내부: 입력/출력 버퍼, 변환 시간 */
+.layout-machine-interior {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.layout-machine-interior .layout-panel-head {
+  margin-bottom: 0.5rem;
+}
+
+.layout-buffer-row,
+.layout-conversion-time {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+}
+
+.layout-buffer-label {
+  color: var(--color-text-muted);
+}
+
+.layout-buffer-value {
+  color: var(--color-text);
 }
 
 /* ===== 반응형 ===== */

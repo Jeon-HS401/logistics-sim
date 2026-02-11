@@ -20,3 +20,22 @@ export {
 } from './equipmentSpecs'
 
 export { ZONE_PRESETS, DEFAULT_ZONE_GRID } from './zonePresets'
+
+export {
+  MACHINE_POWER_SPECS,
+  getPowerSpecByMachineId,
+  EQUIPMENT_KIND_TO_MACHINE_ID,
+  type MachinePowerSpec,
+  type PowerCategory,
+} from './powerConsumption'
+
+export {
+  RECIPE_SPECS,
+  getRecipeByRecipeId,
+  getRecipesByMachineId,
+  getRecipeItemIds,
+  getDefaultRecipeIdForInput,
+  getItemCategory,
+  type RecipeSpec,
+  type RecipeInput,
+} from './recipes'
