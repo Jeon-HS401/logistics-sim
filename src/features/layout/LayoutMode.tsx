@@ -3,7 +3,7 @@ import type { LayoutMap, PlacedEquipment, GridPosition, ItemType } from '../../m
 import { buildPathFromOutbound, getEquipmentAt, canPlaceAt, canPlaceAtExcept, canPlaceAtExceptIds, getCoveredCellKeys } from './pathUtils'
 import { EQUIPMENT_SPECS } from '../../data/equipmentSpecs'
 import { MACHINE1_TRANSFORM } from '../../data/dummyScenario'
-import { getRecipeItemIds, getRecipesByMachineId, getRecipeByRecipeId, getDefaultRecipeIdForInput, getItemCategory, EQUIPMENT_KIND_TO_MACHINE_ID } from '../../data'
+import { getRecipeItemIds, getRecipesByMachineId, getRecipeByRecipeId, getDefaultRecipeIdForInput, getItemCategory, getProcessTimeSec, DEFAULT_PROCESS_TIME_SEC, EQUIPMENT_KIND_TO_MACHINE_ID } from '../../data'
 import { Modal } from '../../components/Modal'
 import { ZONE_PRESETS, DEFAULT_ZONE_GRID } from '../../data/zonePresets'
 
@@ -916,7 +916,7 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                 const activeRecipe = selectedEquipment.activeRecipeId
                   ? getRecipeByRecipeId(selectedEquipment.activeRecipeId)
                   : null
-                const processTimeSec = activeRecipe?.process_time_sec
+                const processTimeSec = activeRecipe ? getProcessTimeSec(activeRecipe) : DEFAULT_PROCESS_TIME_SEC
                 return (
                   <>
                     <div className="layout-field">
@@ -958,9 +958,7 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                       <div className="layout-conversion-time">
                         <span className="layout-buffer-label">변환 시간</span>
                         <span className="layout-buffer-value">
-                          {processTimeSec != null ? `${processTimeSec}초` : '—'}
-                          {' / 현재 '}
-                          {processTimeSec != null ? '0초' : '—'}
+                          {processTimeSec}초 / 현재 0초
                         </span>
                       </div>
                     </div>

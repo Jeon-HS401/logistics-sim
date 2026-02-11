@@ -3,6 +3,9 @@
  * machine_id별 입력 품목·수량, 출력 품목·수량
  */
 
+/** 기계 작업 속도 기본값(초). 레시피에 process_time_sec가 없을 때 사용. 나중에 레시피별로 수정 가능 */
+export const DEFAULT_PROCESS_TIME_SEC = 2
+
 export interface RecipeInput {
   item_id: string
   qty: number
@@ -14,8 +17,13 @@ export interface RecipeSpec {
   input_1: RecipeInput
   input_2?: RecipeInput
   output: RecipeInput
-  /** 변환 소요 시간(초). 없으면 UI에서 "—" 등으로 표시 */
+  /** 변환 소요 시간(초). 없으면 DEFAULT_PROCESS_TIME_SEC(2초) 사용 */
   process_time_sec?: number
+}
+
+/** 레시피의 변환 시간(초). 미지정 시 DEFAULT_PROCESS_TIME_SEC 반환 */
+export function getProcessTimeSec(recipe: RecipeSpec): number {
+  return recipe.process_time_sec ?? DEFAULT_PROCESS_TIME_SEC
 }
 
 function r(
@@ -31,30 +39,33 @@ function r(
   return spec
 }
 
+/** 기본 2초. 장비부품합성기(part_synth)·충진기(filler)·포장기(packer) 레시피는 10초 */
 export const RECIPE_SPECS: RecipeSpec[] = [
-  r('refine_originium', 'refinery', { item_id: '오리지늄', qty: 1 }, { item_id: '오리고 크러스트', qty: 1 }),
-  r('refine_amethyst', 'refinery', { item_id: '자수정', qty: 1 }, { item_id: '자수정 섬유', qty: 1 }),
-  r('refine_ferium', 'refinery', { item_id: '페리움', qty: 1 }, { item_id: '페리움 조각', qty: 1 }),
+  r('refine_originium', 'refinery', { item_id: '오리지늄', qty: 1 }, { item_id: '오리고 크러스트', qty: 1 }, undefined, 2),
+  r('refine_amethyst', 'refinery', { item_id: '자수정', qty: 1 }, { item_id: '자수정 섬유', qty: 1 }, undefined, 2),
+  r('refine_ferium', 'refinery', { item_id: '페리움', qty: 1 }, { item_id: '페리움 조각', qty: 1 }, undefined, 2),
 
-  r('part_amethyst', 'part_processor', { item_id: '자수정 섬유', qty: 1 }, { item_id: '자수정 부품', qty: 1 }),
-  r('part_ferium', 'part_processor', { item_id: '페리움 조각', qty: 1 }, { item_id: '페리움 부품', qty: 1 }),
+  r('part_amethyst', 'part_processor', { item_id: '자수정 섬유', qty: 1 }, { item_id: '자수정 부품', qty: 1 }, undefined, 2),
+  r('part_ferium', 'part_processor', { item_id: '페리움 조각', qty: 1 }, { item_id: '페리움 부품', qty: 1 }, undefined, 2),
 
-  r('form_amethyst_bottle', 'former', { item_id: '자수정 섬유', qty: 2 }, { item_id: '자수정 병', qty: 1 }),
-  r('form_ferium_bottle', 'former', { item_id: '페리움 조각', qty: 2 }, { item_id: '페리움 병', qty: 1 }),
+  r('form_amethyst_bottle', 'former', { item_id: '자수정 섬유', qty: 2 }, { item_id: '자수정 병', qty: 1 }, undefined, 2),
+  r('form_ferium_bottle', 'former', { item_id: '페리움 조각', qty: 2 }, { item_id: '페리움 병', qty: 1 }, undefined, 2),
 
   r(
     'equip_part_amethyst',
     'part_synth',
     { item_id: '오리고 크러스트', qty: 5 },
     { item_id: '자수정 장비 부품', qty: 1 },
-    { item_id: '자수정 섬유', qty: 5 }
+    { item_id: '자수정 섬유', qty: 5 },
+    10
   ),
   r(
     'equip_part_ferium',
     'part_synth',
     { item_id: '오리고 크러스트', qty: 10 },
     { item_id: '페리움 장비 부품', qty: 1 },
-    { item_id: '페리움 조각', qty: 10 }
+    { item_id: '페리움 조각', qty: 10 },
+    10
   ),
 
   r(
@@ -62,21 +73,24 @@ export const RECIPE_SPECS: RecipeSpec[] = [
     'packer',
     { item_id: '자수정 부품', qty: 5 },
     { item_id: '폭발물', qty: 1 },
-    { item_id: '아케톤 가루', qty: 1 }
+    { item_id: '아케톤 가루', qty: 1 },
+    10
   ),
   r(
     'pack_battery_small',
     'packer',
     { item_id: '자수정 부품', qty: 5 },
     { item_id: '저용량 배터리', qty: 1 },
-    { item_id: '오리지늄 가루', qty: 10 }
+    { item_id: '오리지늄 가루', qty: 10 },
+    10
   ),
   r(
     'pack_battery_medium',
     'packer',
     { item_id: '페리움 부품', qty: 10 },
     { item_id: '중용량 배터리', qty: 1 },
-    { item_id: '오리지늄 가루', qty: 15 }
+    { item_id: '오리지늄 가루', qty: 15 },
+    10
   ),
 
   r(
@@ -84,28 +98,32 @@ export const RECIPE_SPECS: RecipeSpec[] = [
     'filler',
     { item_id: '자수정 병', qty: 5 },
     { item_id: '시트론 통조림', qty: 1 },
-    { item_id: '시트론 가루', qty: 5 }
+    { item_id: '시트론 가루', qty: 5 },
+    10
   ),
   r(
     'fill_buckwheat_small',
     'filler',
     { item_id: '자수정 병', qty: 5 },
     { item_id: '메밀꽃 캡슐', qty: 1 },
-    { item_id: '메밀꽃 가루', qty: 5 }
+    { item_id: '메밀꽃 가루', qty: 5 },
+    10
   ),
   r(
     'fill_citron_medium',
     'filler',
     { item_id: '페리움 병', qty: 10 },
     { item_id: '시트론 통조림(중)', qty: 1 },
-    { item_id: '시트론 가루', qty: 10 }
+    { item_id: '시트론 가루', qty: 10 },
+    10
   ),
   r(
     'fill_buckwheat_medium',
     'filler',
     { item_id: '페리움 병', qty: 10 },
     { item_id: '메밀꽃 캡슐(중)', qty: 1 },
-    { item_id: '메밀꽃 가루', qty: 10 }
+    { item_id: '메밀꽃 가루', qty: 10 },
+    10
   ),
 ]
 

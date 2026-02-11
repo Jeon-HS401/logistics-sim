@@ -122,6 +122,42 @@ export interface Zone {
 export const TICK_SEC = 0.5
 export const CONVEYOR_TICKS_PER_MOVE = 4
 
+/** 기계 생산: 1틱당 진행 시간(초). process_time_sec=2면 2틱에 완료 → 3틱 시작 시 5틱에 출력 */
+export const MACHINE_PROGRESS_PER_TICK = 1
+
+/** 명세 §4.5: 기계 입력·출력 버퍼 최대 개수 */
+export const MACHINE_BUFFER_CAPACITY = 50
+
+/**
+ * 기계 한 대의 런타임 상태 (Phase B).
+ * 활성 레시피는 layout의 PlacedEquipment.activeRecipeId 또는 입력 기준 자동 선택.
+ */
+export interface MachineRuntimeState {
+  /** 품목별 입력 버퍼 수량. 합계 ≤ MACHINE_BUFFER_CAPACITY */
+  inBuffer: Partial<Record<string, number>>
+  /** 품목별 출력 버퍼 수량. 합계 ≤ MACHINE_BUFFER_CAPACITY */
+  outBuffer: Partial<Record<string, number>>
+  /** 현재 작업 진행 시간(초). 레시피 process_time_sec 도달 시 완료 → 출력 버퍼 적재 */
+  progressSec: number
+  /** 진행 중인 레시피 ID. 작업 시작 시 설정, 완료 시 초기화 */
+  currentRecipeId: string | null
+  /** 전력 공급 여부. false면 생산 진행·출력 배출 중단 (입력 흡입은 가능) */
+  powered: boolean
+}
+
+/**
+ * 시뮬레이션 런타임 상태 (매 tick 갱신).
+ * cellItems: 셀별 아이템. key = "row,col", value = item_id.
+ * machineStates: 기계(flow 기계)별 버퍼·진행·전력. key = PlacedEquipment.id.
+ */
+export interface SimulationState {
+  currentTick: number
+  cellItems: Record<string, string>
+  warehouse: Partial<Record<string, number>>
+  /** 기계별 런타임 상태. 포트 있는 기계만 포함 */
+  machineStates: Record<string, MachineRuntimeState>
+}
+
 /** 명세 §7 World: zones, warehouse, current_tick */
 export interface World {
   zones: Zone[]

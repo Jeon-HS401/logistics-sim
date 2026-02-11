@@ -1,6 +1,10 @@
 .simulation-mode {
-  max-width: 720px;
+  max-width: 960px;
   margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .simulation-header h2 {
@@ -15,20 +19,140 @@
   line-height: 1.5;
 }
 
-.simulation-placeholder {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
+.simulation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.simulation-controls-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.simulation-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.simulation-btn:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.simulation-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.simulation-btn--play {
+  background: var(--color-accent, #4a9);
+  border-color: var(--color-accent, #4a9);
+  color: #fff;
+}
+
+.simulation-btn--play:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.simulation-tick {
+  margin: 0;
+  font-size: 0.9rem;
   color: var(--color-text-muted);
 }
 
-.simulation-placeholder ul {
-  margin: 0.75rem 0 0 1.25rem;
-  padding: 0;
+.simulation-grid-wrap {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
 }
 
-.simulation-placeholder li {
-  margin: 0.25rem 0;
+/* 그리드만 1:1 비율 유지 */
+.simulation-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--color-border);
+  padding: 1px;
+  aspect-ratio: 1;
+  width: 100%;
+  height: auto;
+  min-width: min(100%, 320px);
+}
+
+.simulation-cell {
+  background: var(--color-surface);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  position: relative;
+}
+
+.simulation-cell--conveyor {
+  background: var(--color-surface-subtle, rgba(255,255,255,0.05));
+}
+
+.simulation-cell--inbound {
+  background: rgba(80, 120, 200, 0.2);
+}
+
+.simulation-cell--outbound {
+  background: rgba(200, 120, 80, 0.2);
+}
+
+.simulation-cell--part {
+  background: var(--color-surface-subtle, rgba(255,255,255,0.03));
+}
+
+.simulation-cell-item {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: var(--color-accent, #6cf);
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  z-index: 1;
+  padding: 1px;
+}
+
+.simulation-cell--has-item {
+  overflow: hidden;
+}
+
+.simulation-warehouse-summary {
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.simulation-warehouse-summary h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.simulation-warehouse-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.simulation-warehouse-empty {
+  color: var(--color-text-muted);
 }

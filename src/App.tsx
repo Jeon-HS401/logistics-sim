@@ -150,7 +150,11 @@ function App() {
             onLayoutChange={handleLayoutChange}
           />
         )}
-        {mode === 'simulation' && <SimulationMode />}
+        {mode === 'simulation' && (
+          <SimulationMode
+            layout={currentSlot?.layout ?? { rows: 32, cols: 32, equipment: [] }}
+          />
+        )}
       </main>
     </div>
   )

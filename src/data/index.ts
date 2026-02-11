@@ -31,11 +31,13 @@ export {
 
 export {
   RECIPE_SPECS,
+  DEFAULT_PROCESS_TIME_SEC,
   getRecipeByRecipeId,
   getRecipesByMachineId,
   getRecipeItemIds,
   getDefaultRecipeIdForInput,
   getItemCategory,
+  getProcessTimeSec,
   type RecipeSpec,
   type RecipeInput,
 } from './recipes'

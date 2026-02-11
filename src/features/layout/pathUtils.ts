@@ -134,8 +134,21 @@ export function canPlaceAtExceptIds(
   return true
 }
 
-/** (fromRow, fromCol) → (toRow, toCol) 이동 방향. 0=→, 90=↓, 180=←, 270=↑ */
-function getMoveDirection(
+/** rotation(도) 기준 다음 셀 좌표 (1칸) */
+export function getNextCell(
+  row: number,
+  col: number,
+  rotation: number
+): GridPosition {
+  const i = rotationToIndex(rotation)
+  return {
+    row: row + ROW_DELTA[i],
+    col: col + COL_DELTA[i],
+  }
+}
+
+/** (fromRow, fromCol) → (toRow, toCol) 이동 방향. 0=→, 90=↓, 180=←, 270=↑. 경로/시뮬 공통. */
+export function getMoveDirection(
   fromRow: number,
   fromCol: number,
   toRow: number,
@@ -150,17 +163,40 @@ function getMoveDirection(
   return 0
 }
 
-/** rotation(도) 기준 다음 셀 좌표 (1칸) */
-export function getNextCell(
-  row: number,
-  col: number,
-  rotation: number
-): GridPosition {
-  const i = rotationToIndex(rotation)
-  return {
-    row: row + ROW_DELTA[i],
-    col: col + COL_DELTA[i],
+/** 출고 포트에서 물품이 나갈 인접 셀(컨베이어/flow 기계) 한 개. buildPathFromOutbound와 동일한 델타 순서(→↓←↑). */
+export function getOutboundOutputCell(
+  layout: LayoutMap,
+  outbound: PlacedEquipment
+): GridPosition | null {
+  const firstDeltas: [number, number][] = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+  for (const [dr, dc] of firstDeltas) {
+    const r = outbound.position.row + dr
+    const c = outbound.position.col + dc
+    if (r < 0 || r >= layout.rows || c < 0 || c >= layout.cols) continue
+    const eq = getEquipmentAt(layout, r, c)
+    if (eq && (eq.kind === 'conveyor' || isFlowMachine(eq))) return { row: r, col: c }
   }
+  return null
+}
+
+/** (fromRow, fromCol) → (toRow, toCol)로 이동했을 때 도착 셀이 수용하는지. buildPathFromOutbound와 동일 규칙(conveyor 입력방향 등). */
+export function canMoveToNextCell(
+  layout: LayoutMap,
+  fromRow: number,
+  fromCol: number,
+  toRow: number,
+  toCol: number
+): boolean {
+  const nextEq = getEquipmentAt(layout, toRow, toCol)
+  if (!nextEq) return false
+  if (nextEq.kind === 'inbound' || nextEq.kind === 'outbound') return true
+  if (nextEq.kind === 'conveyor') {
+    const moveDir = getMoveDirection(fromRow, fromCol, toRow, toCol)
+    if (nextEq.inputDirection != null && nextEq.inputDirection !== moveDir) return false
+    return true
+  }
+  if (isFlowMachine(nextEq)) return true
+  return false
 }
 
 /**
@@ -213,6 +249,55 @@ export function getMachineOutputPortNextCells(
   } else {
     for (let c = 0; c < portCount && c < width; c++) {
       const row = eq.position.row - 1
+      const col = eq.position.col + c
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: c, row, col })
+    }
+  }
+  return result
+}
+
+/**
+ * 기계 입력 포트에 대응하는 셀 목록 (포트 번호 순).
+ * 컨베이어가 3→4로 이동했을 때 4(기계 입력 가장자리)에 도착한 아이템을 이 셀에서 흡입.
+ * 즉, 입력 가장자리 = 기계 내부의 입력 변 셀 (예: 정련로 4,5,6이면 입력은 4열).
+ */
+export function getMachineInputPortCells(
+  layout: LayoutMap,
+  eq: PlacedEquipment
+): { portIndex: number; row: number; col: number }[] {
+  const spec = EQUIPMENT_SPECS[eq.kind]
+  if (!spec?.ports) return []
+  const { width, height } = getSize(eq)
+  const portCount = spec.ports.inputPortCount
+  const inDir = (spec.ports.inputSide + eq.rotation) % 360
+  const i = rotationToIndex(inDir)
+  const result: { portIndex: number; row: number; col: number }[] = []
+  // 입력 가장자리 = 기계 내부의 해당 변. 0°=우→오른쪽 열(c0+width-1), 90°=하→아래 행(r0+height-1), 180°=좌→왼쪽 열(c0), 270°=상→위쪽 행(r0)
+  if (i === 0) {
+    for (let r = 0; r < portCount && r < height; r++) {
+      const row = eq.position.row + r
+      const col = eq.position.col + width - 1
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: r, row, col })
+    }
+  } else if (i === 1) {
+    for (let c = 0; c < portCount && c < width; c++) {
+      const row = eq.position.row + height - 1
+      const col = eq.position.col + c
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: c, row, col })
+    }
+  } else if (i === 2) {
+    for (let r = 0; r < portCount && r < height; r++) {
+      const row = eq.position.row + r
+      const col = eq.position.col
+      if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
+        result.push({ portIndex: r, row, col })
+    }
+  } else {
+    for (let c = 0; c < portCount && c < width; c++) {
+      const row = eq.position.row
       const col = eq.position.col + c
       if (row >= 0 && row < layout.rows && col >= 0 && col < layout.cols)
         result.push({ portIndex: c, row, col })
