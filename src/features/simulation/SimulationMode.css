@@ -1,29 +1,38 @@
 .simulation-mode {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 360px);
+  grid-template-rows: auto 1fr;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.simulation-top {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
 }
 
 .simulation-header h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
 }
 
 .simulation-desc {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .simulation-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
 }
 
 .simulation-controls-row {
@@ -66,11 +75,75 @@
   color: var(--color-text-muted);
 }
 
-.simulation-grid-wrap {
-  overflow: auto;
+/* 왼쪽: 그리드 영역 (확대/축소·팬) */
+.simulation-main {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-bg);
+  overflow: hidden;
+}
+
+.simulation-grid-toolbar {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.simulation-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.simulation-zoom-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.simulation-zoom-btn:hover {
+  background: var(--color-bg);
+}
+
+.simulation-zoom-value {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.simulation-grid-area {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.simulation-grid-area--panning {
+  cursor: grabbing;
+}
+
+.simulation-grid-wrap {
+  flex-shrink: 0;
+  overflow: visible;
+  transform-origin: center center;
 }
 
 /* 그리드만 1:1 비율 유지 */
@@ -80,42 +153,126 @@
   background: var(--color-border);
   padding: 1px;
   aspect-ratio: 1;
-  width: 100%;
+  width: min(100%, 60vh);
   height: auto;
-  min-width: min(100%, 320px);
+  min-width: 200px;
 }
 
-.simulation-cell {
+/* 오른쪽: 관리 패널 (수평 배치) */
+.simulation-panel {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   background: var(--color-surface);
+  padding: 0.5rem;
+}
+
+/* 통합 셀: 배치 화면처럼 한 블록에 라벨 1회만 중앙 표시 */
+.simulation-cell {
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.6rem;
-  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  font-size: clamp(0.5rem, 2vw, 0.7rem);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.simulation-cell[role="button"] {
+  cursor: pointer;
+}
+
+.simulation-cell[role="button"]:hover {
+  border-color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.08);
 }
 
 .simulation-cell--conveyor {
   background: var(--color-surface-subtle, rgba(255,255,255,0.05));
+  border-color: #4fc3f7;
 }
 
 .simulation-cell--inbound {
   background: rgba(80, 120, 200, 0.2);
+  border-color: #4db6ac;
 }
 
 .simulation-cell--outbound {
   background: rgba(200, 120, 80, 0.2);
+  border-color: #ff8a65;
 }
 
-.simulation-cell--part {
-  background: var(--color-surface-subtle, rgba(255,255,255,0.03));
+.simulation-cell--smelter,
+.simulation-cell--crusher,
+.simulation-cell--parts_processor,
+.simulation-cell--former,
+.simulation-cell--seed_extractor,
+.simulation-cell--cultivator,
+.simulation-cell--equipment_parts,
+.simulation-cell--filler,
+.simulation-cell--packer,
+.simulation-cell--polisher,
+.simulation-cell--machine1 {
+  background: rgba(129, 199, 132, 0.2);
+  border-color: #81c784;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.simulation-cell--power_provider {
+  background: rgba(255, 183, 77, 0.2);
+  border-color: #ffb74d;
+}
+
+/* 전력 미공급 기계: 시각적 구분 */
+.simulation-cell--unpowered {
+  background: rgba(120, 80, 80, 0.35) !important;
+  border-color: rgba(220, 100, 100, 0.8) !important;
+  color: var(--color-text-muted);
+}
+
+.simulation-cell--selected {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+  z-index: 1;
+}
+
+.simulation-cell-items {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.simulation-cell-inner {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.simulation-cell-label {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 2px;
+  pointer-events: none;
 }
 
 .simulation-cell-item {
-  position: absolute;
-  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -126,12 +283,45 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  z-index: 1;
   padding: 1px;
+  border-radius: 2px;
 }
 
-.simulation-cell--has-item {
-  overflow: hidden;
+/* 기계 클릭 시 버퍼/진행률 패널 */
+.simulation-machine-detail {
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.simulation-machine-detail-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.simulation-machine-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.simulation-machine-detail-label {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.simulation-machine-detail-value {
+  color: var(--color-text);
+  text-align: right;
+  word-break: break-all;
+}
+
+.simulation-machine-detail-close {
+  margin-top: 0.5rem;
 }
 
 .simulation-warehouse-summary {
@@ -155,4 +345,117 @@
 
 .simulation-warehouse-empty {
   color: var(--color-text-muted);
+}
+
+/* 관리 패널: 기본은 품목·분당 생산·분당 소비만 */
+.simulation-stats-panel {
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.simulation-stats-panel h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.simulation-stats-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.simulation-stats-table-wrap {
+  overflow-x: auto;
+}
+
+.simulation-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.simulation-stats-th,
+.simulation-stats-td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.simulation-stats-th--num,
+.simulation-stats-td--num {
+  text-align: right;
+}
+
+.simulation-stats-th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.simulation-stats-td--cat {
+  color: var(--color-text-muted);
+}
+
+.simulation-stats-tr:nth-child(even) .simulation-stats-td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.simulation-stats-table--compact .simulation-stats-tr {
+  cursor: pointer;
+}
+
+.simulation-stats-tr:hover .simulation-stats-td {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.simulation-stats-tr--selected .simulation-stats-td {
+  background: rgba(88, 166, 255, 0.15);
+  border-color: var(--color-accent);
+}
+
+/* 품목 선택 시 세부 정보 블록 */
+.simulation-stats-detail {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.simulation-stats-detail-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.simulation-stats-detail-list {
+  margin: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.simulation-stats-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.simulation-stats-detail-row dt {
+  margin: 0;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.simulation-stats-detail-row dd {
+  margin: 0;
+  text-align: right;
+  word-break: break-all;
+}
+
+.simulation-stats-detail-close {
+  margin-top: 0.5rem;
+  width: 100%;
 }

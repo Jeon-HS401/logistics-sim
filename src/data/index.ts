@@ -38,6 +38,8 @@ export {
   getDefaultRecipeIdForInput,
   getItemCategory,
   getProcessTimeSec,
+  EXTERNAL_SUPPLY_ITEM_IDS,
+  isExternalSupplyItem,
   type RecipeSpec,
   type RecipeInput,
 } from './recipes'

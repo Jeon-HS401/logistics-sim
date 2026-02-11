@@ -93,6 +93,11 @@ export interface LayoutMap {
    * 품목 ID(문자열)별 수량. 레시피 품목 또는 기존 A/B/C 등.
    */
   warehouseInventory?: Partial<Record<string, number>>
+  /**
+   * 자체 생산(공장 외부) 원자재의 분당 공급량(개/분).
+   * 오리지늄, 자수정, 페리움 등. 시뮬레이션 시 매 tick 해당량만큼 창고에 가산.
+   */
+  externalSupplyRates?: Partial<Record<string, number>>
 }
 
 /** 시뮬레이션 설정 (Phase 2에서 확장) */
@@ -145,6 +150,20 @@ export interface MachineRuntimeState {
   powered: boolean
 }
 
+/** Phase C: 품목별 누적 수량. 단위 통일(개). */
+export interface SimulationStats {
+  /** 품목별 기계 출력 누적(생산) */
+  produced: Partial<Record<string, number>>
+  /** 품목별 기계 입력 누적(소비) */
+  consumed: Partial<Record<string, number>>
+  /** 품목별 출고 누적 */
+  outbound: Partial<Record<string, number>>
+  /** 품목별 입고 누적 */
+  inbound: Partial<Record<string, number>>
+  /** 품목별 외부 공급 누적(원자재 분당 공급 반영) */
+  externalSupply: Partial<Record<string, number>>
+}
+
 /**
  * 시뮬레이션 런타임 상태 (매 tick 갱신).
  * cellItems: 셀별 아이템. key = "row,col", value = item_id.
@@ -156,6 +175,8 @@ export interface SimulationState {
   warehouse: Partial<Record<string, number>>
   /** 기계별 런타임 상태. 포트 있는 기계만 포함 */
   machineStates: Record<string, MachineRuntimeState>
+  /** Phase C: 품목별 누적 생산/소비/출고/입고/외부공급(개) */
+  stats?: SimulationStats
 }
 
 /** 명세 §7 World: zones, warehouse, current_tick */

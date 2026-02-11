@@ -173,3 +173,10 @@ export function getItemCategory(item_id: string): '원자재' | '가공품' {
   const isOutput = RECIPE_SPECS.some((r) => r.output.item_id === item_id)
   return isOutput ? '가공품' : '원자재'
 }
+
+/** 자체 생산(공장 외부) 가능 원자재. 초기값·분당 공급량 직접 입력 대상 */
+export const EXTERNAL_SUPPLY_ITEM_IDS = ['오리지늄', '자수정', '페리움'] as const
+
+export function isExternalSupplyItem(item_id: string): boolean {
+  return (EXTERNAL_SUPPLY_ITEM_IDS as readonly string[]).includes(item_id)
+}

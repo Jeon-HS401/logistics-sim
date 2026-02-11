@@ -3,8 +3,8 @@
  * 명세 §6.2 순서: 출고 → 컨베이어 이동 → 기계 입력 흡입 → 기계 생산 → 기계 출력 배출 → 입고
  */
 
-import type { LayoutMap, SimulationState } from '../../models/types'
-import { CONVEYOR_TICKS_PER_MOVE, MACHINE_BUFFER_CAPACITY, MACHINE_PROGRESS_PER_TICK } from '../../models/types'
+import type { LayoutMap, SimulationState, SimulationStats } from '../../models/types'
+import { CONVEYOR_TICKS_PER_MOVE, MACHINE_BUFFER_CAPACITY, MACHINE_PROGRESS_PER_TICK, TICK_SEC } from '../../models/types'
 import {
   canMoveToNextCell,
   getEquipmentAt,
@@ -21,6 +21,7 @@ import {
   getRecipeByRecipeId,
   getRecipesByMachineId,
   getDefaultRecipeIdForInput,
+  getRecipeItemIds,
 } from '../../data/recipes'
 import type { RecipeSpec } from '../../data/recipes'
 
@@ -90,6 +91,19 @@ function pickOneFromOutBuffer(outBuffer: Partial<Record<string, number>>): strin
   return null
 }
 
+function emptyStats(): SimulationStats {
+  const itemIds = getRecipeItemIds()
+  const empty: Record<string, number> = {}
+  for (const id of itemIds) empty[id] = 0
+  return {
+    produced: { ...empty },
+    consumed: { ...empty },
+    outbound: { ...empty },
+    inbound: { ...empty },
+    externalSupply: { ...empty },
+  }
+}
+
 /** layout·창고 재고로 초기 시뮬 상태 생성. 기계(포트 있는 장비)별 버퍼·진행·전력 초기화 */
 export function createInitialSimulationState(layout: LayoutMap): SimulationState {
   const machineStates: SimulationState['machineStates'] = {}
@@ -100,7 +114,7 @@ export function createInitialSimulationState(layout: LayoutMap): SimulationState
       outBuffer: {},
       progressSec: 0,
       currentRecipeId: null,
-      powered: false,
+      powered: isMachinePowered(layout, eq),
     }
   }
   return {
@@ -108,7 +122,13 @@ export function createInitialSimulationState(layout: LayoutMap): SimulationState
     cellItems: {},
     warehouse: { ...(layout.warehouseInventory ?? {}) },
     machineStates,
+    stats: emptyStats(),
   }
+}
+
+function addStat(stats: SimulationStats, key: keyof SimulationStats, itemId: string, delta: number): void {
+  const rec = stats[key] as Record<string, number>
+  rec[itemId] = (rec[itemId] ?? 0) + delta
 }
 
 /** 1 tick 진행. §6.2 순서 적용. (Phase A: 출고·컨베이어·입고만, 기계는 Phase B에서) */
@@ -117,6 +137,23 @@ export function runOneTick(layout: LayoutMap, state: SimulationState): Simulatio
   const cols = layout.cols
   let cellItems = { ...state.cellItems }
   let warehouse = { ...state.warehouse }
+  const stats: SimulationStats = {
+    produced: { ...state.stats?.produced },
+    consumed: { ...state.stats?.consumed },
+    outbound: { ...state.stats?.outbound },
+    inbound: { ...state.stats?.inbound },
+    externalSupply: { ...state.stats?.externalSupply },
+  }
+
+  // 0. 외부 공급(원자재 분당 공급량). 단위: 개/분 → tick당 개
+  const rates = layout.externalSupplyRates ?? {}
+  for (const [itemId, perMin] of Object.entries(rates)) {
+    const rate = perMin ?? 0
+    if (rate <= 0) continue
+    const perTick = (rate * TICK_SEC) / 60
+    warehouse = { ...warehouse, [itemId]: (warehouse[itemId] ?? 0) + perTick }
+    addStat(stats, 'externalSupply', itemId, perTick)
+  }
 
   // 1. 창고 출력 포트 출고 (출력 셀이 비어 있으면 1개 출고, 창고가 빌 때까지 매 tick 반복)
   for (const eq of layout.equipment) {
@@ -130,6 +167,7 @@ export function runOneTick(layout: LayoutMap, state: SimulationState): Simulatio
     if (cellItems[key]) continue
     cellItems = { ...cellItems, [key]: itemId }
     warehouse = { ...warehouse, [itemId]: stock - 1 }
+    addStat(stats, 'outbound', itemId, 1)
   }
 
   // 2. 컨베이어 이동 (명세: 4 tick당 1칸. 일단 매 tick 이동으로 시뮬 동작 검증)
@@ -232,6 +270,7 @@ export function runOneTick(layout: LayoutMap, state: SimulationState): Simulatio
       if (nextProgress >= processTime) {
         const nextOut = { ...ms.outBuffer }
         addRecipeOutput(nextOut, recipe)
+        addStat(stats, 'produced', recipe.output.item_id, recipe.output.qty)
         machineStates[eq.id] = {
           ...ms,
           outBuffer: nextOut,
@@ -251,6 +290,8 @@ export function runOneTick(layout: LayoutMap, state: SimulationState): Simulatio
     if (!recipe || !inBufferSatisfiesRecipe(stateForNext.inBuffer, recipe)) continue
     const nextIn = { ...stateForNext.inBuffer }
     consumeRecipeInput(nextIn, recipe)
+    addStat(stats, 'consumed', recipe.input_1.item_id, recipe.input_1.qty)
+    if (recipe.input_2) addStat(stats, 'consumed', recipe.input_2.item_id, recipe.input_2.qty)
     machineStates[eq.id] = {
       ...stateForNext,
       inBuffer: nextIn,
@@ -290,6 +331,7 @@ export function runOneTick(layout: LayoutMap, state: SimulationState): Simulatio
     delete nextCellItems[key]
     cellItems = nextCellItems
     warehouse = { ...warehouse, [itemId]: (warehouse[itemId] ?? 0) + 1 }
+    addStat(stats, 'inbound', itemId, 1)
   }
 
   return {
@@ -297,5 +339,6 @@ export function runOneTick(layout: LayoutMap, state: SimulationState): Simulatio
     cellItems,
     warehouse,
     machineStates,
+    stats,
   }
 }

@@ -3,7 +3,7 @@ import type { LayoutMap, PlacedEquipment, GridPosition, ItemType } from '../../m
 import { buildPathFromOutbound, getEquipmentAt, canPlaceAt, canPlaceAtExcept, canPlaceAtExceptIds, getCoveredCellKeys } from './pathUtils'
 import { EQUIPMENT_SPECS } from '../../data/equipmentSpecs'
 import { MACHINE1_TRANSFORM } from '../../data/dummyScenario'
-import { getRecipeItemIds, getRecipesByMachineId, getRecipeByRecipeId, getDefaultRecipeIdForInput, getItemCategory, getProcessTimeSec, DEFAULT_PROCESS_TIME_SEC, EQUIPMENT_KIND_TO_MACHINE_ID } from '../../data'
+import { getRecipeItemIds, getRecipesByMachineId, getRecipeByRecipeId, getDefaultRecipeIdForInput, getItemCategory, getProcessTimeSec, DEFAULT_PROCESS_TIME_SEC, EQUIPMENT_KIND_TO_MACHINE_ID, EXTERNAL_SUPPLY_ITEM_IDS } from '../../data'
 import { Modal } from '../../components/Modal'
 import { ZONE_PRESETS, DEFAULT_ZONE_GRID } from '../../data/zonePresets'
 
@@ -755,14 +755,17 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
         onClose={() => setWarehouseModalOpen(false)}
         title="창고 (Warehouse)"
       >
-        <p className="layout-warehouse-desc">재료 특성별 재고 수량</p>
+        <p className="layout-warehouse-desc">재료 특성별 재고 수량. 원자재(오리지늄·자수정·페리움)는 분당 공급량을 입력하면 시뮬레이션 시 자동 공급됩니다.</p>
         <div className="layout-warehouse-table-wrap">
           <table className="layout-warehouse-table">
             <thead>
               <tr>
                 <th className="layout-warehouse-th layout-warehouse-th--category">구분</th>
                 <th className="layout-warehouse-th">품목</th>
-                <th className="layout-warehouse-th layout-warehouse-th--qty">수량</th>
+                <th className="layout-warehouse-th layout-warehouse-th--qty">수량 (개)</th>
+                {(EXTERNAL_SUPPLY_ITEM_IDS as readonly string[]).some((id) => WAREHOUSE_ITEM_IDS.includes(id)) && (
+                  <th className="layout-warehouse-th layout-warehouse-th--qty">분당 공급량 (개/분)</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -776,6 +779,8 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                 .map((itemId) => {
                   const count = (map.warehouseInventory ?? {})[itemId] ?? 0
                   const category = getItemCategory(itemId)
+                  const isExternal = (EXTERNAL_SUPPLY_ITEM_IDS as readonly string[]).includes(itemId)
+                  const supplyPerMin = (map.externalSupplyRates ?? {})[itemId] ?? 0
                   return (
                     <tr key={itemId} className="layout-warehouse-tr">
                       <td className="layout-warehouse-td layout-warehouse-td--category">{category}</td>
@@ -798,6 +803,32 @@ export function LayoutMode({ layout: map, onLayoutChange }: Props) {
                           className="layout-warehouse-input"
                         />
                       </td>
+                      {(EXTERNAL_SUPPLY_ITEM_IDS as readonly string[]).some((id) => WAREHOUSE_ITEM_IDS.includes(id)) && (
+                        isExternal ? (
+                          <td className="layout-warehouse-td layout-warehouse-td--qty">
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.1}
+                              value={supplyPerMin}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value)
+                                onLayoutChange({
+                                  ...map,
+                                  externalSupplyRates: {
+                                    ...(map.externalSupplyRates ?? {}),
+                                    [itemId]: Number.isNaN(v) ? 0 : Math.max(0, v),
+                                  },
+                                })
+                              }}
+                              className="layout-warehouse-input"
+                              placeholder="0"
+                            />
+                          </td>
+                        ) : (
+                          <td className="layout-warehouse-td layout-warehouse-td--category">—</td>
+                        )
+                      )}
                     </tr>
                   )
                 })}
