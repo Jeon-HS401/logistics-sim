@@ -1,24 +1,40 @@
 /**
  * 물류 시뮬레이션 공통 타입 정의
- * Phase 1: 최소 필드만. 이후 단계에서 확장.
+ * factory_simulator_v_1_작업_명세서.md 기준 확장. 기존 LayoutMap/PlacedEquipment 호환 유지.
  */
 
-/** 물품 종류 (원자재 A,B,C / 가공품 A1,B1,C1) */
+/** 물품 ID (원자재 A,B,C / 가공품 A1,B1,C1). 명세서 item_id에 대응 */
 export type ItemType = 'A' | 'B' | 'C' | 'A1' | 'B1' | 'C1'
 
 /**
- * 장비 종류 (1차: 입고·출고·컨베이어·기계1)
- * 향후 확장: 기계별 크기(그리드 칸 수), 입출력 포트 위치·개수 등 고정 예정.
+ * 장비 종류
+ * 명세 §4.2 기초 생산 기계, §4.3 합성 생산 기계 반영
  */
 export type EquipmentKind =
-  | 'inbound'    // 입고
-  | 'outbound'   // 출고
-  | 'conveyor'   // 컨베이어
-  | 'machine1'   // 기계1 (추후 기계2 등 확장)
-  | 'storage'    // 보관 (과거 호환)
-  | 'processor'  // 가공 (과거 호환)
+  | 'inbound'
+  | 'outbound'
+  | 'conveyor'
+  | 'power_provider'
+  | 'smelter'           // 정련로 3×3
+  | 'crusher'           // 분쇄기 3×3
+  | 'parts_processor'   // 부품가공기 3×3
+  | 'former'            // 성형기 3×3
+  | 'seed_extractor'    // 씨앗 추출기 5×5
+  | 'cultivator'        // 재배기 5×5
+  | 'equipment_parts'   // 장비 부품 생성기 4×6
+  | 'filler'            // 충진기 4×6
+  | 'packer'            // 포장기 4×6
+  | 'polisher'          // 연마기 4×6
+  | 'storage'
+  | 'processor'
+  // 과거 호환
+  | 'machine1'
 
-/** 그리드 셀 한 칸의 위치 */
+/**
+ * 그리드 셀 위치.
+ * 명세서 §1.3: Zone 내부 x: 0~width-1, y: 0~height-1, 좌하단 원점.
+ * 현재 구현: row = y축(0=상단), col = x축. 화면은 row 0 상단 기준.
+ */
 export interface GridPosition {
   row: number
   col: number
@@ -64,14 +80,14 @@ export interface PlacedEquipment {
   powerKw?: number
 }
 
-/** 맵(배치) 전체 */
+/** 맵(배치) 전체. 명세서 Zone의 격자+장비 목록에 대응 (단일 Zone 시) */
 export interface LayoutMap {
   rows: number
   cols: number
   equipment: PlacedEquipment[]
   /**
-   * 창고 보유량. 입고→창고 적재, 출고는 선택 품목만 창고에서 가져감.
-   * 시뮬레이션 시 사용. 없으면 빈 객체 또는 0으로 해석.
+   * 창고 보유량. 명세 §2.1 warehouse inventory[item_id]=int.
+   * 입고→창고 적재, 출고는 선택 품목만 창고에서 가져감.
    */
   warehouseInventory?: Partial<Record<ItemType, number>>
 }
@@ -81,6 +97,62 @@ export interface SimulationConfig {
   durationMinutes: number
   inboundRatePerMinute: number
   /** 나중에: 전력 제한, 우선순위 등 */
+}
+
+// --- 명세서 §7 데이터 구조 대응 (확장) ---
+
+/** 명세 §2.1: 모든 Zone이 공유하는 창고. inventory[item_id] = 수량 */
+export interface Warehouse {
+  inventory: Partial<Record<ItemType, number>>
+}
+
+/** 명세 §1.1: 직사각 격자 Zone. grid·장비 목록은 layout으로 표현 가능 */
+export interface Zone {
+  id: string
+  width: number
+  height: number
+  /** 현재는 단일 Zone 내용 = LayoutMap과 동일 구조 */
+  layout: LayoutMap
+}
+
+/** 명세 §6: tick_sec 0.5, 컨베이어 4 tick당 1칸 */
+export const TICK_SEC = 0.5
+export const CONVEYOR_TICKS_PER_MOVE = 4
+
+/** 명세 §7 World: zones, warehouse, current_tick */
+export interface World {
+  zones: Zone[]
+  warehouse: Warehouse
+  current_tick: number
+}
+
+/** 명세 §2.3: 입출력 포트 1×3. Zone 외곽(좌/하) 배치, connectCell에서 격자와 접속 */
+export type PortEdge = 'left' | 'bottom'
+
+export interface PortBase {
+  id: string
+  /** 1×3: 물류라인 접촉 길이 3 */
+  length: number
+  edge: PortEdge
+  /** 격자와 접속하는 셀 (1×3의 중앙 등) */
+  connectPosition: GridPosition
+}
+
+export interface InputPort extends PortBase {
+  kind: 'input'
+}
+
+export interface OutputPort extends PortBase {
+  kind: 'output'
+  item_id: ItemType
+}
+
+/** 명세 §5.1: 전력공급기 2×2, 중심 기준 12×12 범위 */
+export interface PowerProviderSpec {
+  width: number
+  height: number
+  /** 공급 반경 (중심 기준 격자 칸 수). 명세 예: 12 → 12×12 */
+  range: number
 }
 
 // --- 작업 환경·슬롯·버전 관리 ---

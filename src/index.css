@@ -1,8 +1,10 @@
-/* 반응형 기본: 웹·모바일 공통 */
+/* 반응형 기본: 웹·모바일 공통. 어두운 톤, 패널·그리드 구분 */
 :root {
-  --color-bg: #0f1419;
-  --color-surface: #1a2332;
-  --color-border: #2d3a4d;
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-surface-elevated: #1c2128;
+  --color-border: #30363d;
+  --color-border-subtle: #21262d;
   --color-text: #e6edf3;
   --color-text-muted: #8b949e;
   --color-accent: #58a6ff;

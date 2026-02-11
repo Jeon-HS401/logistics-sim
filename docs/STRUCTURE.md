@@ -1,6 +1,8 @@
 # 전체 구조 정리
 
-구현에 앞서 **데이터·개념 구조**를 고정해 두는 문서입니다.
+구현에 앞서 **데이터·개념 구조**를 고정해 두는 문서입니다.  
+**기준 명세**: [factory_simulator_v_1_작업_명세서.md](factory_simulator_v_1_작업_명세서.md)  
+**명세–코드 매핑**: [SPEC_ALIGNMENT.md](SPEC_ALIGNMENT.md)
 
 ---
 
@@ -67,9 +69,19 @@
 | 구분 | 내용 |
 |------|------|
 | **PlacedEquipment** | position, size?(다칸), rotation, inputDirection?(컨베이어), **outboundSelectedItem?**(출고 시 창고에서 선택한 품목) |
-| **장비 종류별 스펙** | size, inputSide, inputPortCount, outputSide, outputPortCount (기계 등) |
+| **장비 종류별 스펙** | size, inputSide, inputPortCount, outputSide, outputPortCount (기계 등). power_provider 2×2 (명세 §5.1) |
 | **Layout / 슬롯** | **warehouseInventory?** (창고 보유량), equipment[] |
 | **방향전환** | 한 셀에서 진입 방향 ≠ 이탈 방향 (컨베이어 inputDirection ≠ rotation) |
+| **World / Zone** | 명세 §7. World(zones, warehouse, current_tick), Zone(width, height, layout). 단일 Zone 시 layout = 현재 배치 |
+
+---
+
+## 6. 명세서 반영 요약
+
+- **좌표계** (명세 §1.3): Zone 내부 x: 0~width-1, y: 0~height-1, 좌하단 원점. 현재 화면은 row 0 상단 기준으로 유지.
+- **Cell 상태** (명세 §1.2): Empty | Conveyor | Machine 영역 | Power Provider 영역. 포트는 Cell을 점유하지 않는 논리 접점(명세 §2.3 포트 1×3은 Zone 외곽).
+- **Tick** (명세 §6): tick_sec 0.5, 컨베이어 4 tick당 1칸. Tick 처리 순서: 1 출고 → 2 컨베이어 이동 → 3 기계 입력 흡입 → 4 기계 생산 → 5 기계 출력 배출 → 6 입고.
+- **타입**: `src/models/types.ts`에 World, Zone, Warehouse, Port(1×3), TICK_SEC, CONVEYOR_TICKS_PER_MOVE, PowerProviderSpec 추가.
 
 ---
 

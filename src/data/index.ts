@@ -18,3 +18,5 @@ export {
   type EquipmentPortSpec,
   type Side,
 } from './equipmentSpecs'
+
+export { ZONE_PRESETS, DEFAULT_ZONE_GRID } from './zonePresets'

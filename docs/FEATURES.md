@@ -53,6 +53,13 @@
 - **창고**: 입고에서 받은 물품 보관, 출고 포트별 선택 품목만 공급.
 - 데이터: `src/data/dummyScenario.ts` (Phase 2 시뮬레이션에서 사용).
 
+### 명세서 정렬 (최근)
+- **기준 명세**: [factory_simulator_v_1_작업_명세서.md](factory_simulator_v_1_작업_명세서.md).  
+- **명세–코드 매핑**: [SPEC_ALIGNMENT.md](SPEC_ALIGNMENT.md).  
+- **타입 확장**: World, Zone, Warehouse, Port(1×3), TICK_SEC, CONVEYOR_TICKS_PER_MOVE, PowerProvider(2×2).  
+- **데이터**: Zone 프리셋(Z1 70×70, Z2/Z3 40×40), `src/data/zonePresets.ts`.  
+- 기존 LayoutMap/PlacedEquipment/슬롯 저장 호환 유지.
+
 ### 전체 구조 (설계 기준)
 - **구조 문서**: [docs/STRUCTURE.md](STRUCTURE.md).  
   - **방향전환**: 한 셀에서 **진입 방향 ≠ 이탈 방향**(예: A2→A3→B3에서 A3의 동작).  

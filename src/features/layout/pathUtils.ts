@@ -22,6 +22,11 @@ function getSize(eq: PlacedEquipment): EquipmentSize {
   return { width: spec?.width ?? 1, height: spec?.height ?? 1 }
 }
 
+/** 명세 §4 기계(입출력 포트 보유) 여부. 경로 연속 시 컨베이어와 동일 취급 */
+function isFlowMachine(eq: PlacedEquipment): boolean {
+  return EQUIPMENT_SPECS[eq.kind]?.ports != null
+}
+
 /** 한 장비가 점유하는 모든 셀 (기준점 기준) */
 export function getOccupiedCells(eq: PlacedEquipment): GridPosition[] {
   const { width, height } = getSize(eq)
@@ -83,6 +88,26 @@ export function canPlaceAt(
       const nc = col + c
       if (nr < 0 || nr >= layout.rows || nc < 0 || nc >= layout.cols) return false
       if (isCellOccupied(layout, nr, nc)) return false
+    }
+  }
+  return true
+}
+
+/** 이동 시: exceptId 장비가 점유한 칸은 비어 있는 것으로 간주 */
+export function canPlaceAtExcept(
+  layout: LayoutMap,
+  row: number,
+  col: number,
+  size: EquipmentSize,
+  exceptId: string
+): boolean {
+  for (let r = 0; r < size.height; r++) {
+    for (let c = 0; c < size.width; c++) {
+      const nr = row + r
+      const nc = col + c
+      if (nr < 0 || nr >= layout.rows || nc < 0 || nc >= layout.cols) return false
+      const eq = getEquipmentAt(layout, nr, nc)
+      if (eq != null && eq.id !== exceptId) return false
     }
   }
   return true
@@ -155,7 +180,7 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
       path.push({ row: nr, col: nc })
       return path
     }
-    if (eq?.kind === 'conveyor' || eq?.kind === 'machine1') {
+    if (eq && (eq.kind === 'conveyor' || isFlowMachine(eq))) {
       current = { row: nr, col: nc }
       path.push(current)
       visited.add(key(nr, nc))
@@ -174,8 +199,7 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
 
     if (eq.kind === 'conveyor') {
       const fromDir = getMoveDirection(fromRow, fromCol, current.row, current.col)
-      const inputExpected = (fromDir + 180) % 360
-      if (eq.inputDirection != null && eq.inputDirection !== inputExpected) break
+      if (eq.inputDirection != null && eq.inputDirection !== fromDir) break
       const next = getNextCell(current.row, current.col, eq.rotation)
       fromRow = current.row
       fromCol = current.col
@@ -186,12 +210,12 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
         path.push(next)
         return path
       }
-      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+      if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
         path.push(next)
         visited.add(key(next.row, next.col))
         current = next
       } else break
-    } else if (eq.kind === 'machine1') {
+    } else if (isFlowMachine(eq)) {
       const next = getMachineOutputNext(layout, eq)
       if (!next) break
       fromRow = current.row
@@ -206,7 +230,7 @@ export function buildPathFromInbound(layout: LayoutMap): GridPosition[] | null {
         path.push(next)
         return path
       }
-      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+      if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
         path.push(next)
         visited.add(key(next.row, next.col))
         current = next
@@ -248,7 +272,7 @@ export function buildPathFromOutbound(
       path.push({ row: nr, col: nc })
       return path
     }
-    if (eq?.kind === 'conveyor' || eq?.kind === 'machine1') {
+    if (eq && (eq.kind === 'conveyor' || isFlowMachine(eq))) {
       current = { row: nr, col: nc }
       path.push(current)
       visited.add(key(nr, nc))
@@ -266,8 +290,7 @@ export function buildPathFromOutbound(
 
     if (eq.kind === 'conveyor') {
       const fromDir = getMoveDirection(fromRow, fromCol, current.row, current.col)
-      const inputExpected = (fromDir + 180) % 360
-      if (eq.inputDirection != null && eq.inputDirection !== inputExpected) break
+      if (eq.inputDirection != null && eq.inputDirection !== fromDir) break
       const next = getNextCell(current.row, current.col, eq.rotation)
       fromRow = current.row
       fromCol = current.col
@@ -278,12 +301,12 @@ export function buildPathFromOutbound(
         path.push(next)
         return path
       }
-      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+      if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
         path.push(next)
         visited.add(key(next.row, next.col))
         current = next
       } else break
-    } else if (eq.kind === 'machine1') {
+    } else if (isFlowMachine(eq)) {
       const next = getMachineOutputNext(layout, eq)
       if (!next) break
       fromRow = current.row
@@ -294,7 +317,7 @@ export function buildPathFromOutbound(
         path.push(next)
         return path
       }
-      if (nextEq?.kind === 'conveyor' || nextEq?.kind === 'machine1') {
+      if (nextEq && (nextEq.kind === 'conveyor' || isFlowMachine(nextEq))) {
         path.push(next)
         visited.add(key(next.row, next.col))
         current = next

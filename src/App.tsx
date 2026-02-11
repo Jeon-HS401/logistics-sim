@@ -114,7 +114,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="app-title">물류 시뮬레이션</h1>
+        <h1 className="app-title">Factory Simulator</h1>
         <nav className="app-nav">
           <button
             className={mode === 'layout' ? 'active' : ''}
