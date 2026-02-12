@@ -43,3 +43,10 @@ export {
   type RecipeSpec,
   type RecipeInput,
 } from './recipes'
+
+export {
+  MARKETS,
+  getMarketByMarketId,
+  type MarketSpec,
+  type MarketItemOffer,
+} from './markets'

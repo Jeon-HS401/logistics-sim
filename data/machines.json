@@ -1,0 +1,23 @@
+{
+    "machines": [
+      { "machine_id": "전동채굴기", "process_time_sec": null, "power_consumption": 5 },
+      { "machine_id": "전동채굴기2", "process_time_sec": null, "power_consumption": 10 },
+      { "machine_id": "양수기", "process_time_sec": null, "power_consumption": 10 },
+  
+      { "machine_id": "정련로", "process_time_sec": 2, "power_consumption": 5 },
+      { "machine_id": "분쇄기", "process_time_sec": 2, "power_consumption": 5 },
+      { "machine_id": "부품가공기", "process_time_sec": 2, "power_consumption": 20 },
+      { "machine_id": "성형기", "process_time_sec": 2, "power_consumption": 10 },
+      { "machine_id": "재배기", "process_time_sec": 2, "power_consumption": 20 },
+      { "machine_id": "씨앗추출기", "process_time_sec": 2, "power_consumption": 10 },
+  
+      { "machine_id": "장비부품합성기", "process_time_sec": 10, "power_consumption": 10 },
+      { "machine_id": "충진기", "process_time_sec": 10, "power_consumption": 20 },
+      { "machine_id": "포장기", "process_time_sec": 10, "power_consumption": 20 },
+  
+      { "machine_id": "반응기", "process_time_sec": 2, "power_consumption": 50 },
+      { "machine_id": "연마기", "process_time_sec": 2, "power_consumption": 50 },
+      { "machine_id": "천화로", "process_time_sec": null, "power_consumption": 50 },
+      { "machine_id": "분해기", "process_time_sec": 2, "power_consumption": 20 }
+    ]
+  }

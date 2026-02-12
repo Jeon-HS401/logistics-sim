@@ -1,0 +1,34 @@
+{
+    "markets": [
+      {
+        "market_id": "유랑자 임시 거주지",
+        "recovery_per_hour": 17316,
+        "max_balance": 420000,
+        "items": [
+          { "item_id": "오리고 크러스트", "price": 1 },
+          { "item_id": "중용량 배터리", "price": 30 },
+          { "item_id": "대용량 배터리", "price": 70 },
+          { "item_id": "메밀꽃 캡슐(대)", "price": 70 },
+          { "item_id": "메밀꽃 캡슐(중)", "price": 27 },
+          { "item_id": "시트론 통조림(중)", "price": 27 },
+          { "item_id": "시트론 통조림(중)", "price": 10 },
+          { "item_id": "메밀꽃 캡슐", "price": 10 },
+          { "item_id": "자수정 병", "price": 2 },
+          { "item_id": "자수정 부품", "price": 1 }
+        ]
+      },
+      {
+        "market_id": "기초 건설 주둔지",
+        "recovery_per_hour": 23688,
+        "max_balance": 2100000,
+        "items": [
+          { "item_id": "페리움 부품", "price": 1 },
+          { "item_id": "대용량 배터리", "price": 70 },
+          { "item_id": "메밀꽃 캡슐(대)", "price": 70 },
+          { "item_id": "중용량 배터리", "price": 30 },
+          { "item_id": "메밀꽃 캡슐(중)", "price": 27 },
+          { "item_id": "저용량 배터리", "price": 16 }
+        ]
+      }
+    ]
+  }

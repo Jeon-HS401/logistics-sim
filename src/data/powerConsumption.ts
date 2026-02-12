@@ -1,6 +1,6 @@
 /**
- * 전력 소모 데이터 (확장 가능)
- * machine_id → 초당 전력 단위, 카테고리
+ * 전력 소모 데이터
+ * data/machines.json의 power_consumption과 대응. machine_id는 프로젝트 내부 ID(영문) 사용.
  */
 
 export type PowerCategory =

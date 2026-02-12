@@ -1,0 +1,82 @@
+{
+    "recipes": [
+  
+  
+      { "machine_id": "정련로", "inputs": [{ "item_id": "오리지늄", "qty": 1 }], "outputs": [{ "item_id": "오리고 크러스트", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "자수정", "qty": 1 }], "outputs": [{ "item_id": "자수정 섬유", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "페리움", "qty": 1 }], "outputs": [{ "item_id": "페리움 조각", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "고운 오리고 크러스트 가루", "qty": 1 }], "outputs": [{ "item_id": "정련된 오리고 크러스트", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "고운 페리움 가루", "qty": 1 }], "outputs": [{ "item_id": "강철 조각", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "크리스톤 가루", "qty": 1 }], "outputs": [{ "item_id": "크리스톤 섬유", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "고운 카본 가루", "qty": 1 }], "outputs": [{ "item_id": "안정된 카본 조각", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "고운 오리지늄 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 오리고 크러스트 가류", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "메밀꽃", "qty": 1 }], "outputs": [{ "item_id": "카본 조각", "qty": 1 }] },
+      { "machine_id": "정련로", "inputs": [{ "item_id": "샌드리프", "qty": 1 }], "outputs": [{ "item_id": "카본 조각", "qty": 1 }] },
+  
+  
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "페리움 조각", "qty": 1 }], "outputs": [{ "item_id": "페리움 가루", "qty": 1 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "자수정 섬유", "qty": 1 }], "outputs": [{ "item_id": "자수정 가로", "qty": 1 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "오리지늄", "qty": 1 }], "outputs": [{ "item_id": "오리지늄 가루", "qty": 1 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "카본 조각", "qty": 1 }], "outputs": [{ "item_id": "카본 가루", "qty": 2 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "오리고 크러스트", "qty": 1 }], "outputs": [{ "item_id": "오리고 크러스트 가루", "qty": 1 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "메밀꽃", "qty": 1 }], "outputs": [{ "item_id": "메밀꽃 가루", "qty": 2 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "시트론", "qty": 1 }], "outputs": [{ "item_id": "시트론 가루", "qty": 2 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "샌드리프", "qty": 1 }], "outputs": [{ "item_id": "샌드리프 가루", "qty": 3 }] },
+      { "machine_id": "분쇄기", "inputs": [{ "item_id": "아케톤", "qty": 1 }], "outputs": [{ "item_id": "아케톤 가루", "qty": 2 }] },
+  
+  
+      { "machine_id": "부품가공기", "inputs": [{ "item_id": "자수정 섬유", "qty": 1 }], "outputs": [{ "item_id": "자수정 부품", "qty": 1 }] },
+      { "machine_id": "부품가공기", "inputs": [{ "item_id": "페리움 조각", "qty": 1 }], "outputs": [{ "item_id": "페리움 부품", "qty": 1 }] },
+      { "machine_id": "부품가공기", "inputs": [{ "item_id": "강철 조각", "qty": 1 }], "outputs": [{ "item_id": "강철 부품", "qty": 1 }] },
+      { "machine_id": "부품가공기", "inputs": [{ "item_id": "크리스톤 섬유", "qty": 1 }], "outputs": [{ "item_id": "크리스톤 부품", "qty": 1 }] },
+  
+  
+      { "machine_id": "성형기", "inputs": [{ "item_id": "자수정 섬유", "qty": 2 }], "outputs": [{ "item_id": "자수정 병", "qty": 1 }] },
+      { "machine_id": "성형기", "inputs": [{ "item_id": "페리움 조각", "qty": 2 }], "outputs": [{ "item_id": "페리움 병", "qty": 1 }] },
+      { "machine_id": "성형기", "inputs": [{ "item_id": "강철 조각", "qty": 2 }], "outputs": [{ "item_id": "페리움 병", "qty": 1 }] },
+      { "machine_id": "성형기", "inputs": [{ "item_id": "크리스톤 섬유", "qty": 2 }], "outputs": [{ "item_id": "크리스톤 병", "qty": 1 }] },
+  
+  
+      { "machine_id": "장비부품합성기", "inputs": [{ "item_id": "오리고 크러스트", "qty": 5 }, { "item_id": "자수정 섬유", "qty": 5 }], "outputs": [{ "item_id": "자수정 장비 부품", "qty": 1 }] },
+      { "machine_id": "장비부품합성기", "inputs": [{ "item_id": "오리고 크러스트", "qty": 10 }, { "item_id": "페리움 조각", "qty": 10 }], "outputs": [{ "item_id": "페리움 장비 부품", "qty": 1 }] },
+      { "machine_id": "장비부품합성기", "inputs": [{ "item_id": "정련된 오리고 크러스트", "qty": 10 }, { "item_id": "크리스톤 섬유", "qty": 10 }], "outputs": [{ "item_id": "크리스톤 장비 부품", "qty": 1 }] },
+  
+  
+      { "machine_id": "씨앗추출기", "inputs": [{ "item_id": "메밀꽃", "qty": 1 }], "outputs": [{ "item_id": "메밀꽃 씨앗", "qty": 2 }] },
+      { "machine_id": "씨앗추출기", "inputs": [{ "item_id": "샌드리프", "qty": 1 }], "outputs": [{ "item_id": "샌드리프 씨앗", "qty": 2 }] },
+      { "machine_id": "씨앗추출기", "inputs": [{ "item_id": "시트론", "qty": 1 }], "outputs": [{ "item_id": "시트론 씨앗", "qty": 2 }] },
+      { "machine_id": "씨앗추출기", "inputs": [{ "item_id": "아케톤", "qty": 1 }], "outputs": [{ "item_id": "아케톤 씨앗", "qty": 2 }] },
+      { "machine_id": "씨앗추출기", "inputs": [{ "item_id": "회보리", "qty": 1 }], "outputs": [{ "item_id": "회보리 씨앗", "qty": 2 }] },
+      { "machine_id": "씨앗추출기", "inputs": [{ "item_id": "쓴맛 나는 고추", "qty": 1 }], "outputs": [{ "item_id": "쓴맛 나는 고추 씨앗", "qty": 2 }] },
+  
+  
+      { "machine_id": "재배기", "inputs": [{ "item_id": "메밀꽃 씨앗", "qty": 1 }], "outputs": [{ "item_id": "메밀꽃", "qty": 1 }] },
+      { "machine_id": "재배기", "inputs": [{ "item_id": "샌드리프 씨앗", "qty": 1 }], "outputs": [{ "item_id": "샌드리프", "qty": 1 }] },
+      { "machine_id": "재배기", "inputs": [{ "item_id": "시트론 씨앗", "qty": 1 }], "outputs": [{ "item_id": "시트론", "qty": 1 }] },
+      { "machine_id": "재배기", "inputs": [{ "item_id": "아케톤 씨앗", "qty": 1 }], "outputs": [{ "item_id": "아케톤", "qty": 1 }] },
+  
+  
+      { "machine_id": "포장기", "inputs": [{ "item_id": "자수정 부품", "qty": 5 }, { "item_id": "아케톤 가루", "qty": 1 }], "outputs": [{ "item_id": "폭발물", "qty": 1 }] },
+      { "machine_id": "포장기", "inputs": [{ "item_id": "자수정 부품", "qty": 5 }, { "item_id": "오리지늄 가루", "qty": 10 }], "outputs": [{ "item_id": "저용량 배터리", "qty": 1 }] },
+      { "machine_id": "포장기", "inputs": [{ "item_id": "페리움 부품", "qty": 10 }, { "item_id": "오리지늄 가루", "qty": 15 }], "outputs": [{ "item_id": "중용량 배터리", "qty": 1 }] },
+      { "machine_id": "포장기", "inputs": [{ "item_id": "강철 부품", "qty": 10 }, { "item_id": "고운 오리지늄 가루", "qty": 15 }], "outputs": [{ "item_id": "대용량 배터리", "qty": 1 }] },
+  
+  
+      { "machine_id": "충진기", "inputs": [{ "item_id": "자수정 병", "qty": 5 }, { "item_id": "시트론 가루", "qty": 5 }], "outputs": [{ "item_id": "시트론 통조림", "qty": 1 }] },
+      { "machine_id": "충진기", "inputs": [{ "item_id": "자수정 병", "qty": 5 }, { "item_id": "메밀꽃 가루", "qty": 5 }], "outputs": [{ "item_id": "메밀꽃 캡슐", "qty": 1 }] },
+      { "machine_id": "충진기", "inputs": [{ "item_id": "페리움 병", "qty": 10 }, { "item_id": "시트론 가루", "qty": 10 }], "outputs": [{ "item_id": "시트론 통조림(중)", "qty": 1 }] },
+      { "machine_id": "충진기", "inputs": [{ "item_id": "페리움 병", "qty": 10 }, { "item_id": "메밀꽃 가루", "qty": 10 }], "outputs": [{ "item_id": "메밀꽃 캡슐(중)", "qty": 1 }] },
+      { "machine_id": "충진기", "inputs": [{ "item_id": "강철 병", "qty": 10 }, { "item_id": "고운 시트론 가루", "qty": 10 }], "outputs": [{ "item_id": "시트론 통조림(대)", "qty": 1 }] },
+      { "machine_id": "충진기", "inputs": [{ "item_id": "강철 병", "qty": 10 }, { "item_id": "고운 메밀꽃 가루", "qty": 10 }], "outputs": [{ "item_id": "메밀꽃 캡슐(대)", "qty": 1 }] },
+  
+  
+      { "machine_id": "연마기", "inputs": [{ "item_id": "페리움 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 페리움 가루", "qty": 1 }] },
+      { "machine_id": "연마기", "inputs": [{ "item_id": "자수정 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "크리스톤 가루", "qty": 1 }] },
+      { "machine_id": "연마기", "inputs": [{ "item_id": "오리지늄 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 오리지늄 가루", "qty": 1 }] },
+      { "machine_id": "연마기", "inputs": [{ "item_id": "카본 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 카본 가루", "qty": 1 }] },
+      { "machine_id": "연마기", "inputs": [{ "item_id": "오리고 크러스트 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 오리고 크러스트 가루", "qty": 1 }] },
+      { "machine_id": "연마기", "inputs": [{ "item_id": "메밀꽃 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 메밀꽃 가루", "qty": 1 }] },
+      { "machine_id": "연마기", "inputs": [{ "item_id": "시트론 가루", "qty": 2 }, { "item_id": "샌드리프 가루", "qty": 1 }], "outputs": [{ "item_id": "고운 시트론 가루", "qty": 1 }] }
+  
+    ]
+  }
